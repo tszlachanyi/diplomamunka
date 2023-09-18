@@ -1,0 +1,2 @@
+C:\Users\Tade\Downloads\opengl-tutorials-main\opengl-tutorials-main\Compute Shaders\x64\Debug\OpenGL Context.exe
+C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\x64\Debug\OpenGL Context.exe
