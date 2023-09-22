@@ -20,9 +20,13 @@ GLuint screenTex;
 GLuint loadTex;
 
 GLfloat textureVectors[1000][4 * COMPUTE_WIDTH * COMPUTE_HEIGHT];
-GLuint currentIteration = 1;
+GLint currentIteration = 0;
+GLint computedIterations = 0;
 
 GLuint computeProgram;
+double mousexpos, mouseypos;
+bool clickingAllowed = true;
+
 
 GLfloat vertices[] =
 {
@@ -157,6 +161,18 @@ struct vec4 {
 	}
 };
 
+// Converts from screen coordinates to coordinates of the textures
+vec2 screenToTextureCoords(vec2 coords)
+{
+	float xRatio = SCREEN_WIDTH / COMPUTE_WIDTH;
+	float yRatio = SCREEN_HEIGHT / COMPUTE_HEIGHT;
+
+	int x = std::floor(coords.x / xRatio);
+	int y = (COMPUTE_HEIGHT - 1) - std::floor(coords.y / yRatio);
+
+	return vec2(x, y);
+}
+
 // Converts from matrix coordinate to texture coordinate of a pixel and its rgba value 
 int matrixToVecCoords(vec2 coords, int rgba)
 {
@@ -173,6 +189,7 @@ void colorTexture(GLfloat* textureVector, vec2 coords, vec4 rgba)
 	
 }
 
+// Assign a texture vector to an element of the textureVectors array
 void assignToTextureVectorsArray(GLuint i, GLfloat vector[4 * COMPUTE_WIDTH * COMPUTE_HEIGHT])
 {
 	for (int j = 0; j <= 4 * COMPUTE_WIDTH * COMPUTE_HEIGHT; j++)
@@ -196,9 +213,32 @@ GLfloat* getTextureVector(GLuint texture)
 // Use compute shader to create screenTex from current loadTex
 void computeNext()
 {
-	glUseProgram(computeProgram);
-	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
-	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+	//std::cout << " (" << coords.x << " , " << coords.y << ")" << std::endl;
+
+	if (computedIterations > currentIteration)
+	{
+		currentIteration++;
+		glTextureSubImage2D(screenTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RGBA, GL_FLOAT, textureVectors[currentIteration]);
+
+		std::cout << "currentIteration : " << currentIteration << " computedIterations : " << computedIterations << " loaded" << std::endl;
+	}
+	else
+	{
+		glTextureSubImage2D(loadTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RGBA, GL_FLOAT, textureVectors[currentIteration]);
+
+		glUseProgram(computeProgram);
+		glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
+		glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+		currentIteration++;
+		computedIterations = currentIteration;
+		GLfloat* textureVector = getTextureVector(screenTex);
+		assignToTextureVectorsArray(currentIteration, textureVector);
+
+		std::cout << "currentIteration : " << currentIteration << " computedIterations : " << computedIterations << " computed" << std::endl;
+	}
+
+	
 }
 
 // Input
@@ -213,19 +253,39 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	{
 		std::cout << "Right\n";
 
-		
-		GLfloat* textureVector = getTextureVector(screenTex);
-		glTextureSubImage2D(loadTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RGBA, GL_FLOAT, textureVector);
+		clickingAllowed = false;
+		computeNext();
 		
 	}
 
 	if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
 	{
 		std::cout << "Left\n";
+		
+		if (currentIteration >= 1)
+		{
+			currentIteration = currentIteration - 2;
+			computeNext();
+		}
 	}
 }
 
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+	if ((button == GLFW_MOUSE_BUTTON_LEFT || button == GLFW_MOUSE_BUTTON_RIGHT) && action == GLFW_PRESS)
+	{
+		vec2 coords = screenToTextureCoords(vec2(mousexpos, mouseypos));
+		std::cout << " (" << coords.x << " , " << coords.y << ")" << std::endl;
 
+		if (clickingAllowed)
+		{
+			GLfloat* pixelData = textureVectors[currentIteration];
+			colorTexture(pixelData, coords, vec4(1, 1, 1, 1));
+			assignToTextureVectorsArray(currentIteration, pixelData);
+			glTextureSubImage2D(screenTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RGBA, GL_FLOAT, textureVectors[currentIteration]);
+		}
+	}
+}
 
 int main()
 {
@@ -246,6 +306,7 @@ int main()
 	glfwMakeContextCurrent(window);
 	glfwSwapInterval(vSync);
 	glfwSetKeyCallback(window, key_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
@@ -296,26 +357,26 @@ int main()
 
 	GLfloat* pixelData = new GLfloat[4 * COMPUTE_WIDTH * COMPUTE_HEIGHT];
 	
-		// Still
-		colorTexture(pixelData, vec2(8, 4),  vec4(1, 1, 1, 1));
-		colorTexture(pixelData, vec2(9, 3),  vec4(1, 1, 1, 1));
-		colorTexture(pixelData, vec2(9, 5),  vec4(1, 1, 1, 1));
-		colorTexture(pixelData, vec2(10, 4), vec4(1, 1, 1, 1));
-
-		// Oscillator
-		colorTexture(pixelData, vec2(4, 4), vec4(1, 1, 1, 1));
-		colorTexture(pixelData, vec2(4, 5), vec4(1, 1, 1, 1));
-		colorTexture(pixelData, vec2(4, 6), vec4(1, 1, 1, 1));
-
-		// Spaceship
-		colorTexture(pixelData, vec2(4, 20), vec4(1, 1, 1, 1));
-		colorTexture(pixelData, vec2(5, 20), vec4(1, 1, 1, 1));
-		colorTexture(pixelData, vec2(6, 20), vec4(1, 1, 1, 1));
-		colorTexture(pixelData, vec2(6, 21), vec4(1, 1, 1, 1));
-		colorTexture(pixelData, vec2(5, 22), vec4(1, 1, 1, 1));
+		// // Still
+		// colorTexture(pixelData, vec2(8, 4),  vec4(1, 1, 1, 1));
+		// colorTexture(pixelData, vec2(9, 3),  vec4(1, 1, 1, 1));
+		// colorTexture(pixelData, vec2(9, 5),  vec4(1, 1, 1, 1));
+		// colorTexture(pixelData, vec2(10, 4), vec4(1, 1, 1, 1));
+		// 
+		// // Oscillator
+		// colorTexture(pixelData, vec2(4, 4), vec4(1, 1, 1, 1));
+		// colorTexture(pixelData, vec2(4, 5), vec4(1, 1, 1, 1));
+		// colorTexture(pixelData, vec2(4, 6), vec4(1, 1, 1, 1));
+		// 
+		// // Spaceship
+		// colorTexture(pixelData, vec2(4, 20), vec4(1, 1, 1, 1));
+		// colorTexture(pixelData, vec2(5, 20), vec4(1, 1, 1, 1));
+		// colorTexture(pixelData, vec2(6, 20), vec4(1, 1, 1, 1));
+		// colorTexture(pixelData, vec2(6, 21), vec4(1, 1, 1, 1));
+		// colorTexture(pixelData, vec2(5, 22), vec4(1, 1, 1, 1));
 
 	assignToTextureVectorsArray(0, pixelData);
-	glTextureSubImage2D(loadTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RGBA, GL_FLOAT, pixelData);
+	
 
 	GLuint screenVertexShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(screenVertexShader, 1, &screenVertexShaderSource, NULL);
@@ -364,11 +425,12 @@ int main()
 	glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &work_grp_inv);
 	std::cout << "Max invocations count per work group: " << work_grp_inv << "\n";
 
-	
+	// Load initial position
+	glTextureSubImage2D(screenTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RGBA, GL_FLOAT, textureVectors[currentIteration]);
 
 	while (!glfwWindowShouldClose(window))
 	{
-		computeNext();
+		glfwGetCursorPos(window, &mousexpos, &mouseypos);
 
 		glUseProgram(screenShaderProgram);
 		glBindTextureUnit(0, screenTex);
