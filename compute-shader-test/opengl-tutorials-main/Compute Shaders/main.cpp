@@ -5,18 +5,24 @@
 
 
 
-
 const unsigned int SCREEN_WIDTH = 1024;
 const unsigned int SCREEN_HEIGHT = 1024;
 
-const unsigned int COMPUTE_WIDTH = 16;
-const unsigned int COMPUTE_HEIGHT = 16;
+const unsigned int COMPUTE_WIDTH = 32;
+const unsigned int COMPUTE_HEIGHT = 32;
 
 const unsigned short OPENGL_MAJOR_VERSION = 4;
 const unsigned short OPENGL_MINOR_VERSION = 6;
 
 bool vSync = true;
 
+GLuint screenTex;
+GLuint loadTex;
+
+GLfloat textureVectors[1000][4 * COMPUTE_WIDTH * COMPUTE_HEIGHT];
+GLuint currentIteration = 1;
+
+GLuint computeProgram;
 
 GLfloat vertices[] =
 {
@@ -62,29 +68,168 @@ void main()
 {
 	vec4 pixel = vec4(0.075, 0.133, 0.173, 1.0);
 	ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
-	vec4 loadedPixel = imageLoad(inputImage, pixelCoords);
-	
-	float x = pixelCoords.x;
-	float y = pixelCoords.y;
 	
 	vec4 black = vec4(0, 0, 0, 1.0);
-	vec4 white = vec4(1, 1, 1, 1.0); 
+	vec4 white = vec4(1, 1, 1, 1.0);
 
-	if ( (x + y) >= 16 )
+	ivec2 neighbourCoords[8] = {ivec2(-1,-1), ivec2(-1,0), ivec2(-1,1), ivec2(0,-1), ivec2(0,1), ivec2(1,-1), ivec2(1,0), ivec2(1,1)};
+	vec4 loadedPixel;
+	int neighboursSum = 0;
+
+	for (int i = 0; i <= 7; i++)
 	{
-		pixel = white;
+		loadedPixel = imageLoad(inputImage, pixelCoords + neighbourCoords[i]);
+		if (loadedPixel == white)
+		{
+			neighboursSum++;
+		}
+	}	
+
+	loadedPixel = imageLoad(inputImage, pixelCoords);
+	
+	if (loadedPixel == white)
+	{
+		if (neighboursSum == 2 || neighboursSum == 3)
+		{
+			pixel = white;
+		}
+		else
+		{
+			pixel = black;
+		}
+		
 	}
 	else
 	{
-		pixel = black;
+		if (neighboursSum == 3)
+		{
+			pixel = white;
+		}
+		else
+		{
+			pixel = black;
+		}
 	}
+	
+
+	
+	
 
 	imageStore(outputImage, pixelCoords, pixel);
 })";
 
+struct vec2 {
+	float x, y;
+
+	vec2(float x_val, float y_val)
+		: x(x_val), y(y_val) {}
+
+	float& operator[](int index) {
+		if (index == 0) return x;
+		if (index == 1) return y;
+	}
+};
+
+struct vec3 {
+	float x, y, z;
+
+	vec3(float x_val, float y_val, float z_val)
+		: x(x_val), y(y_val), z(z_val) {}
+
+	float& operator[](int index) {
+		if (index == 0) return x;
+		if (index == 1) return y;
+		if (index == 2) return z;
+	}
+};
+
+struct vec4 {
+	float x, y, z, w;
+
+	vec4(float x_val, float y_val, float z_val, float w_val)
+		: x(x_val), y(y_val), z(z_val), w(w_val) {}
+
+	float& operator[](int index) {
+		if (index == 0) return x;
+		if (index == 1) return y;
+		if (index == 2) return z;
+		if (index == 3) return w;
+	}
+};
+
+// Converts from matrix coordinate to texture coordinate of a pixel and its rgba value 
+int matrixToVecCoords(vec2 coords, int rgba)
+{
+	return (COMPUTE_WIDTH * coords.y * 4) + (coords.x * 4) + rgba;
+}
+
+// Changes the color of a coordinate in a texture vector 
+void colorTexture(GLfloat* textureVector, vec2 coords, vec4 rgba)
+{
+	for (int i = 0; i <= 3; i++)
+	{
+		textureVector[matrixToVecCoords(coords, i)] = rgba[i];
+	}
+	
+}
+
+void assignToTextureVectorsArray(GLuint i, GLfloat vector[4 * COMPUTE_WIDTH * COMPUTE_HEIGHT])
+{
+	for (int j = 0; j <= 4 * COMPUTE_WIDTH * COMPUTE_HEIGHT; j++)
+	{
+		textureVectors[i][j] = vector[j];
+	}
+}
+
+// Get vector format of a texture
+GLfloat* getTextureVector(GLuint texture)
+{
+	GLfloat*  textureVector = new GLfloat[4 * COMPUTE_WIDTH * COMPUTE_HEIGHT];
+
+	glBindTexture(GL_TEXTURE_2D, screenTex);
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, textureVector);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	return textureVector;
+}
+
+// Use compute shader to create screenTex from current loadTex
+void computeNext()
+{
+	glUseProgram(computeProgram);
+	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+}
+
+// Input
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+	{
+		glfwSetWindowShouldClose(window, true);
+	}
+
+	if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+	{
+		std::cout << "Right\n";
+
+		
+		GLfloat* textureVector = getTextureVector(screenTex);
+		glTextureSubImage2D(loadTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RGBA, GL_FLOAT, textureVector);
+		
+	}
+
+	if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+	{
+		std::cout << "Left\n";
+	}
+}
+
+
 
 int main()
 {
+
 	glfwInit();
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, OPENGL_MAJOR_VERSION);
@@ -100,6 +245,7 @@ int main()
 	}
 	glfwMakeContextCurrent(window);
 	glfwSwapInterval(vSync);
+	glfwSetKeyCallback(window, key_callback);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
@@ -127,8 +273,8 @@ int main()
 	glVertexArrayVertexBuffer(VAO, 0, VBO, 0, 5 * sizeof(GLfloat));
 	glVertexArrayElementBuffer(VAO, EBO);
 
-
-	GLuint screenTex;
+	// Output Texture
+	
 	glCreateTextures(GL_TEXTURE_2D, 1, &screenTex);
 	glTextureParameteri(screenTex, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTextureParameteri(screenTex, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -137,7 +283,9 @@ int main()
 	glTextureStorage2D(screenTex, 1, GL_RGBA32F, COMPUTE_WIDTH, COMPUTE_HEIGHT);
 	glBindImageTexture(0, screenTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-	GLuint loadTex;
+
+	// Initial Texture
+	
 	glCreateTextures(GL_TEXTURE_2D, 1, &loadTex);
 	glTextureParameteri(loadTex, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTextureParameteri(loadTex, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -146,6 +294,28 @@ int main()
 	glTextureStorage2D(loadTex, 1, GL_RGBA32F, COMPUTE_WIDTH, COMPUTE_HEIGHT);
 	glBindImageTexture(1, loadTex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
 
+	GLfloat* pixelData = new GLfloat[4 * COMPUTE_WIDTH * COMPUTE_HEIGHT];
+	
+		// Still
+		colorTexture(pixelData, vec2(8, 4),  vec4(1, 1, 1, 1));
+		colorTexture(pixelData, vec2(9, 3),  vec4(1, 1, 1, 1));
+		colorTexture(pixelData, vec2(9, 5),  vec4(1, 1, 1, 1));
+		colorTexture(pixelData, vec2(10, 4), vec4(1, 1, 1, 1));
+
+		// Oscillator
+		colorTexture(pixelData, vec2(4, 4), vec4(1, 1, 1, 1));
+		colorTexture(pixelData, vec2(4, 5), vec4(1, 1, 1, 1));
+		colorTexture(pixelData, vec2(4, 6), vec4(1, 1, 1, 1));
+
+		// Spaceship
+		colorTexture(pixelData, vec2(4, 20), vec4(1, 1, 1, 1));
+		colorTexture(pixelData, vec2(5, 20), vec4(1, 1, 1, 1));
+		colorTexture(pixelData, vec2(6, 20), vec4(1, 1, 1, 1));
+		colorTexture(pixelData, vec2(6, 21), vec4(1, 1, 1, 1));
+		colorTexture(pixelData, vec2(5, 22), vec4(1, 1, 1, 1));
+
+	assignToTextureVectorsArray(0, pixelData);
+	glTextureSubImage2D(loadTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RGBA, GL_FLOAT, pixelData);
 
 	GLuint screenVertexShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(screenVertexShader, 1, &screenVertexShaderSource, NULL);
@@ -167,7 +337,7 @@ int main()
 	glShaderSource(computeShader, 1, &screenComputeShaderSource, NULL);
 	glCompileShader(computeShader);
 
-	GLuint computeProgram = glCreateProgram();
+	computeProgram = glCreateProgram();
 	glAttachShader(computeProgram, computeShader);
 	glLinkProgram(computeProgram);
 
@@ -194,12 +364,11 @@ int main()
 	glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &work_grp_inv);
 	std::cout << "Max invocations count per work group: " << work_grp_inv << "\n";
 
+	
 
 	while (!glfwWindowShouldClose(window))
 	{
-		glUseProgram(computeProgram);
-		glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
-		glMemoryBarrier(GL_ALL_BARRIER_BITS);
+		computeNext();
 
 		glUseProgram(screenShaderProgram);
 		glBindTextureUnit(0, screenTex);
@@ -209,6 +378,7 @@ int main()
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+		
 	}
 
 
