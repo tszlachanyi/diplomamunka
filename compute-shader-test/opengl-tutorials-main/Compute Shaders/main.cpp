@@ -1,25 +1,29 @@
 #include<iostream>
+#include <chrono>
 
 #include"glad/glad.h"
 #include"GLFW/glfw3.h"
 
+using namespace std::chrono;
 
 
 const unsigned int SCREEN_WIDTH = 1024;
 const unsigned int SCREEN_HEIGHT = 1024;
 
-const unsigned int COMPUTE_WIDTH = 32;
-const unsigned int COMPUTE_HEIGHT = 32;
+const unsigned int COMPUTE_WIDTH = 64;
+const unsigned int COMPUTE_HEIGHT = 64;
 
 const unsigned short OPENGL_MAJOR_VERSION = 4;
 const unsigned short OPENGL_MINOR_VERSION = 6;
+
+const unsigned int MAXIMUM_LENGTH = 1000;
 
 bool vSync = true;
 
 GLuint screenTex;
 GLuint loadTex;
 
-GLfloat textureVectors[1000][4 * COMPUTE_WIDTH * COMPUTE_HEIGHT];
+GLfloat textureVectors[MAXIMUM_LENGTH][4 * COMPUTE_WIDTH * COMPUTE_HEIGHT];
 GLint currentIteration = 0;
 GLint computedIterations = 0;
 
@@ -210,13 +214,25 @@ GLfloat* getTextureVector(GLuint texture)
 	return textureVector;
 }
 
+// Get current epoch time in milliseconds
+uint64_t getEpochTime()
+{
+	milliseconds ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+	uint64_t time = ms.count();
+	return time;
+}
+
 // Use compute shader to create screenTex from current loadTex
 void computeNext()
 {
 	//std::cout << " (" << coords.x << " , " << coords.y << ")" << std::endl;
 
+	uint64_t startTime = getEpochTime();
+
 	if (computedIterations > currentIteration)
-	{
+	{	
+
+		
 		currentIteration++;
 		glTextureSubImage2D(screenTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RGBA, GL_FLOAT, textureVectors[currentIteration]);
 
@@ -238,7 +254,8 @@ void computeNext()
 		std::cout << "currentIteration : " << currentIteration << " computedIterations : " << computedIterations << " computed" << std::endl;
 	}
 
-	
+	uint64_t endTime = getEpochTime();
+	std::cout << "elapsed time : " << endTime - startTime << " ms" << std::endl ;
 }
 
 // Input

@@ -1,10 +1,10 @@
 ﻿  main.cpp
-C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\main.cpp(170,8): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
-C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\main.cpp(171,8): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
-C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\main.cpp(173,17): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\main.cpp(173,14): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\main.cpp(179,57): warning C4244: 'return': conversion from 'float' to 'int', possible loss of data
-C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\main.cpp(277,55): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\main.cpp(277,44): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\main.cpp(161): warning C4715: 'vec4::operator[]': not all control paths return a value
+C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\main.cpp(174,8): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\main.cpp(175,8): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\main.cpp(177,17): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\main.cpp(177,14): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\main.cpp(183,57): warning C4244: 'return': conversion from 'float' to 'int', possible loss of data
+C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\main.cpp(294,55): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\main.cpp(294,44): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\main.cpp(165): warning C4715: 'vec4::operator[]': not all control paths return a value
   OpenGL Context.vcxproj -> C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\x64\Debug\OpenGL Context.exe
