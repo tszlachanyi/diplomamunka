@@ -1,10 +1,11 @@
 
-#include<iostream>
+#include <iostream>
 #include <chrono>
-
-#include"glad/glad.h"
-#include"GLFW/glfw3.h"
-#include"glm/glm.hpp"
+#include <algorithm>
+		 
+#include "glad/glad.h"
+#include "GLFW/glfw3.h"
+#include "glm/glm.hpp"
 
 
 #include <stdio.h>
@@ -12,6 +13,8 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+
+
 
 using namespace std::chrono;
 using namespace glm;
@@ -33,7 +36,10 @@ GLuint screenTex;
 GLuint computedTex;
 GLuint loadTex;
 
-GLfloat textureVectors[MAXIMUM_LENGTH][4 * COMPUTE_WIDTH * COMPUTE_HEIGHT];
+GLuint textureVectors[MAXIMUM_LENGTH][COMPUTE_WIDTH * COMPUTE_HEIGHT];
+GLuint white = 1;
+GLuint black = 0;
+
 GLint currentIteration = 0;
 GLint computedIterations = 0;
 
@@ -122,47 +128,16 @@ vec2 screenToTextureCoords(vec2 coords)
 	float xRatio = SCREEN_WIDTH / COMPUTE_WIDTH;
 	float yRatio = SCREEN_HEIGHT / COMPUTE_HEIGHT;
 
-	int x = std::floor(coords.x / xRatio);
-	int y = (COMPUTE_HEIGHT - 1) - std::floor(coords.y / yRatio);
+	int x = int(std::floor(coords.x / xRatio));
+	int y = (COMPUTE_HEIGHT - 1) - int(std::floor(coords.y / yRatio));
 
 	return vec2(x, y);
 }
 
-// Converts from matrix coordinate to texture coordinate of a pixel and its rgba value 
-int matrixToVecCoords(vec2 coords, int rgba)
+// Converts from matrix coordinate to texture coordinate of a pixel
+int matrixToVecCoords(vec2 coords)
 {
-	return (COMPUTE_WIDTH * coords.y * 4) + (coords.x * 4) + rgba;
-}
-
-// Changes the color of a coordinate in a texture vector 
-void colorTexture(GLfloat* textureVector, vec2 coords, vec4 rgba)
-{
-	for (int i = 0; i <= 3; i++)
-	{
-		textureVector[matrixToVecCoords(coords, i)] = rgba[i];
-	}
-
-}
-
-// Assign a texture vector to an element of the textureVectors array
-void assignToTextureVectorsArray(GLuint i, GLfloat vector[4 * COMPUTE_WIDTH * COMPUTE_HEIGHT])
-{
-	for (int j = 0; j <= 4 * COMPUTE_WIDTH * COMPUTE_HEIGHT; j++)
-	{
-		textureVectors[i][j] = vector[j];
-	}
-}
-
-// Get vector format of a RGBA texture
-GLfloat* getTextureVector(GLuint texture)
-{
-	GLfloat* textureVector = new GLfloat[4 * COMPUTE_WIDTH * COMPUTE_HEIGHT];
-
-	glBindTexture(GL_TEXTURE_2D, screenTex);
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, textureVector);
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-	return textureVector;
+	return int((COMPUTE_WIDTH * coords.y) + (coords.x));
 }
 
 // Get current epoch time in milliseconds
@@ -173,25 +148,83 @@ uint64_t getEpochTime()
 	return time;
 }
 
+
+
+template <typename T, size_t N>
+void printArray(T(&array)[N])
+{
+	std::cout << "[";
+
+	for (size_t i = 0; i < N; i++)
+	{
+		std::cout << array[i];
+		if (i != N - 1)
+		{
+			std::cout << ", ";
+		}
+	}
+	
+	std::cout << "]" << std::endl;
+}
+
+void assignToTextureVectorsArray(GLuint i, GLuint vector[COMPUTE_WIDTH * COMPUTE_HEIGHT])
+{
+	for (int j = 0; j <= COMPUTE_WIDTH * COMPUTE_HEIGHT; j++)
+	{
+		textureVectors[i][j] = vector[j];
+	}
+}
+
+// Get vector format of a GL_R32UI texture
+GLuint* getTextureVector(GLuint texture)
+{
+	GLuint* textureVector = new GLuint[COMPUTE_WIDTH * COMPUTE_HEIGHT];
+	//GLuint textureVector[COMPUTE_WIDTH * COMPUTE_HEIGHT];
+
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, textureVector);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	return textureVector;
+}
+
+void updateScreenTex()
+{
+	GLfloat rgbaVector[4 * COMPUTE_WIDTH * COMPUTE_HEIGHT];
+
+	for (int j = 0; j < COMPUTE_WIDTH * COMPUTE_HEIGHT; j++)
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			if (textureVectors[currentIteration][j] == white)
+			{
+				rgbaVector[4 * j + i] = 1;
+			}
+			else
+			{
+				rgbaVector[4 * j + i] = 0;
+			}
+		}
+	}
+
+	//printArray(textureVectors[currentIteration]);
+	glTextureSubImage2D(screenTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RGBA, GL_FLOAT, rgbaVector);
+}
+
+
 // Use compute shader to create screenTex from current loadTex
 void computeNext()
 {
-	//std::cout << " (" << coords.x << " , " << coords.y << ")" << std::endl;
-
-
 
 	if (computedIterations > currentIteration)
 	{
-
-
 		currentIteration++;
-		glTextureSubImage2D(screenTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RGBA, GL_FLOAT, textureVectors[currentIteration]);
+		updateScreenTex();
 
-		std::cout << "currentIteration : " << currentIteration << " computedIterations : " << computedIterations << " loaded" << std::endl;
+		std::cout << "currentIteration : " << currentIteration << " computedIterations : " << computedIterations << std::endl;
 	}
 	else
 	{
-		glTextureSubImage2D(loadTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RGBA, GL_FLOAT, textureVectors[currentIteration]);
+		glTextureSubImage2D(loadTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, textureVectors[currentIteration]);
 
 		glUseProgram(computeProgram);
 		glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
@@ -199,10 +232,14 @@ void computeNext()
 
 		currentIteration++;
 		computedIterations = currentIteration;
-		GLfloat* textureVector = getTextureVector(screenTex);
-		assignToTextureVectorsArray(currentIteration, textureVector);
+		GLuint* textureVector = getTextureVector(computedTex);
 
-		std::cout << "currentIteration : " << currentIteration << " computedIterations : " << computedIterations << " computed" << std::endl;
+		assignToTextureVectorsArray(currentIteration, textureVector);
+		
+
+		updateScreenTex();
+
+		std::cout << "currentIteration : " << currentIteration << " computedIterations : " << computedIterations << std::endl;
 	}
 
 
@@ -218,8 +255,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 	if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
 	{
-		std::cout << "Right\n";
-
 		clickingAllowed = false;
 
 		uint64_t startTime = getEpochTime();
@@ -233,7 +268,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 	if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
 	{
-		std::cout << "Left\n";
 
 		if (currentIteration >= 1)
 		{
@@ -245,17 +279,28 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-	if ((button == GLFW_MOUSE_BUTTON_LEFT || button == GLFW_MOUSE_BUTTON_RIGHT) && action == GLFW_PRESS)
+	if (action == GLFW_PRESS)
 	{
 		vec2 coords = screenToTextureCoords(vec2(mousexpos, mouseypos));
 		std::cout << " (" << coords.x << " , " << coords.y << ")" << std::endl;
 
 		if (clickingAllowed)
 		{
-			GLfloat* pixelData = textureVectors[currentIteration];
-			colorTexture(pixelData, coords, vec4(1, 1, 1, 1));
-			assignToTextureVectorsArray(currentIteration, pixelData);
-			glTextureSubImage2D(screenTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RGBA, GL_FLOAT, textureVectors[currentIteration]);
+			
+			if (button == GLFW_MOUSE_BUTTON_LEFT)
+			{
+				textureVectors[currentIteration][matrixToVecCoords(coords)] = white;
+			}
+
+			if (button == GLFW_MOUSE_BUTTON_RIGHT)
+			{
+				textureVectors[currentIteration][matrixToVecCoords(coords)] = black;
+			}
+		
+			updateScreenTex();
 		}
 	}
 }
+
+
+	

@@ -2,6 +2,7 @@
 
 int main()
 {
+	// Initialization
 
 	glfwInit();
 
@@ -64,8 +65,8 @@ int main()
 	glTextureParameteri(loadTex, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTextureParameteri(loadTex, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTextureParameteri(loadTex, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTextureStorage2D(loadTex, 1, GL_RGBA32F, COMPUTE_WIDTH, COMPUTE_HEIGHT);
-	glBindImageTexture(1, loadTex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+	glTextureStorage2D(loadTex, 1, GL_R32UI, COMPUTE_WIDTH, COMPUTE_HEIGHT);
+	glBindImageTexture(1, loadTex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32UI);
 
 	// Computed Texture
 
@@ -74,8 +75,8 @@ int main()
 	glTextureParameteri(computedTex, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTextureParameteri(computedTex, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTextureParameteri(computedTex, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTextureStorage2D(computedTex, 1, GL_RGBA32F, COMPUTE_WIDTH, COMPUTE_HEIGHT);
-	glBindImageTexture(2, computedTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+	glTextureStorage2D(computedTex, 1, GL_R32UI, COMPUTE_WIDTH, COMPUTE_HEIGHT);
+	glBindImageTexture(2, computedTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32UI);
 
 	// Shaders
 
@@ -95,31 +96,11 @@ int main()
 	glAttachShader(computeProgram, computeShader);
 	glLinkProgram(computeProgram);
 
-
-	int work_grp_cnt[3];
-	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &work_grp_cnt[0]);
-	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &work_grp_cnt[1]);
-	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &work_grp_cnt[2]);
-	std::cout << "Max work groups per compute shader" << 
-		" x:" << work_grp_cnt[0] <<
-		" y:" << work_grp_cnt[1] <<
-		" z:" << work_grp_cnt[2] << "\n";
-
-	int work_grp_size[3];
-	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &work_grp_size[0]);
-	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &work_grp_size[1]);
-	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &work_grp_size[2]);
-	std::cout << "Max work group sizes" <<
-		" x:" << work_grp_size[0] <<
-		" y:" << work_grp_size[1] <<
-		" z:" << work_grp_size[2] << "\n";
-
-	int work_grp_inv;
-	glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &work_grp_inv);
-	std::cout << "Max invocations count per work group: " << work_grp_inv << "\n";
-
 	// Load initial position
-	glTextureSubImage2D(screenTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RGBA, GL_FLOAT, textureVectors[currentIteration]);
+
+	updateScreenTex();
+
+	// Render
 
 	while (!glfwWindowShouldClose(window))
 	{

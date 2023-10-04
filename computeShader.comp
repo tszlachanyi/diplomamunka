@@ -1,31 +1,31 @@
 #version 460 core
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-layout (binding = 1, rgba32f) readonly uniform image2D inputImage;
-layout (binding = 0, rgba32f) writeonly uniform image2D outputImage;
+layout (binding = 1, r32ui) readonly uniform uimage2D inputImage;
+layout (binding = 2, r32ui) writeonly uniform uimage2D outputImage;
 
 void main()
 {
-	vec4 pixel = vec4(0.075, 0.133, 0.173, 1.0);
+	uint pixel = 0u;
 	ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
 	
-	vec4 black = vec4(0, 0, 0, 1.0);
-	vec4 white = vec4(1, 1, 1, 1.0);
+	uint black = 0u;
+	uint white = 1u;
 
 	ivec2 neighbourCoords[8] = {ivec2(-1,-1), ivec2(-1,0), ivec2(-1,1), ivec2(0,-1), ivec2(0,1), ivec2(1,-1), ivec2(1,0), ivec2(1,1)};
-	vec4 loadedPixel;
+	uint loadedPixel;
 	int neighboursSum = 0;
 
 	for (int i = 0; i <= 7; i++)
 	{
-		loadedPixel = imageLoad(inputImage, pixelCoords + neighbourCoords[i]);
+		loadedPixel = imageLoad(inputImage, pixelCoords + neighbourCoords[i]).x;
 		if (loadedPixel == white)
 		{
 			neighboursSum++;
 		}
 	}	
 
-	loadedPixel = imageLoad(inputImage, pixelCoords);
+	loadedPixel = imageLoad(inputImage, pixelCoords).x;
 	
 	if (loadedPixel == white)
 	{
@@ -50,10 +50,6 @@ void main()
 			pixel = black;
 		}
 	}
-	
 
-	
-	
-
-	imageStore(outputImage, pixelCoords, pixel);
+	imageStore(outputImage, pixelCoords, uvec4(pixel, 0u, 0u, 0u));
 }
