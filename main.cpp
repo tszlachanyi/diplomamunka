@@ -1,4 +1,4 @@
-#include "header.h"
+#include "functions.h"
 
 int main()
 {
@@ -21,6 +21,7 @@ int main()
 	glfwSwapInterval(vSync);
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
+	glfwSetCursorPosCallback(window, cursor_position_callback);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
@@ -85,19 +86,36 @@ int main()
 	GLuint computeShader = loadShader(GL_COMPUTE_SHADER, "computeShader.comp");
 
 	GLuint screenShaderProgram = glCreateProgram();
+	
 	glAttachShader(screenShaderProgram, screenVertexShader);
 	glAttachShader(screenShaderProgram, screenFragmentShader);
 	glLinkProgram(screenShaderProgram);
 
 	glDeleteShader(screenVertexShader);
 	glDeleteShader(screenFragmentShader);
-
+	
 	computeProgram = glCreateProgram();
 	glAttachShader(computeProgram, computeShader);
 	glLinkProgram(computeProgram);
 
+	// Uniforms for compute shader
+	uLocationRules = glGetUniformLocation(computeProgram, "rules");
+	uLocationRulesAmount = glGetUniformLocation(computeProgram, "rulesAmount");
+	uLocationCoordinates = glGetUniformLocation(computeProgram, "coordinates");
+	
+	
 	// Load initial position
 
+	int v = 0b11111111;
+
+	GLuint arr[COMPUTE_WIDTH * COMPUTE_HEIGHT];
+	for (int i = 0; i < COMPUTE_WIDTH * COMPUTE_HEIGHT; i++) {
+		arr[i] = v;
+	}
+
+	cout << pow(5, 3) << endl;
+
+	assignToTextureVectorsArray(0, arr);
 	updateScreenTex();
 
 	// Render
