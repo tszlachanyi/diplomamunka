@@ -50,7 +50,7 @@ int main()
 	glVertexArrayElementBuffer(VAO, EBO);
 
 	// Screen Texture
-	
+
 	glCreateTextures(GL_TEXTURE_2D, 1, &screenTex);
 	glTextureParameteri(screenTex, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTextureParameteri(screenTex, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -60,7 +60,7 @@ int main()
 	glBindImageTexture(0, screenTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
 	// Load Texture
-	
+
 	glCreateTextures(GL_TEXTURE_2D, 1, &loadTex);
 	glTextureParameteri(loadTex, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTextureParameteri(loadTex, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -86,14 +86,14 @@ int main()
 	GLuint computeShader = loadShader(GL_COMPUTE_SHADER, "computeShader.comp");
 
 	GLuint screenShaderProgram = glCreateProgram();
-	
+
 	glAttachShader(screenShaderProgram, screenVertexShader);
 	glAttachShader(screenShaderProgram, screenFragmentShader);
 	glLinkProgram(screenShaderProgram);
 
 	glDeleteShader(screenVertexShader);
 	glDeleteShader(screenFragmentShader);
-	
+
 	computeProgram = glCreateProgram();
 	glAttachShader(computeProgram, computeShader);
 	glLinkProgram(computeProgram);
@@ -101,19 +101,18 @@ int main()
 	// Uniforms for compute shader
 	uLocationRules = glGetUniformLocation(computeProgram, "rules");
 	uLocationRulesAmount = glGetUniformLocation(computeProgram, "rulesAmount");
+	uLocationChosenValue = glGetUniformLocation(computeProgram, "chosenValue");
 	uLocationCoordinates = glGetUniformLocation(computeProgram, "coordinates");
-	
-	
+
+
 	// Load initial position
 
-	int v = 0b11111111;
+	int v = pow(2, TILE_VALUES) - 1;
 
 	GLuint arr[COMPUTE_WIDTH * COMPUTE_HEIGHT];
 	for (int i = 0; i < COMPUTE_WIDTH * COMPUTE_HEIGHT; i++) {
 		arr[i] = v;
 	}
-
-	cout << pow(5, 3) << endl;
 
 	assignToTextureVectorsArray(0, arr);
 	updateScreenTex();

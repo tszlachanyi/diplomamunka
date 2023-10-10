@@ -1,65 +1,5 @@
 #include "header.h"
 
-GLuint loadShader(GLenum _shaderType, const char* _fileName)
-{
-	// shader azonosito letrehozasa
-	GLuint loadedShader = glCreateShader(_shaderType);
-
-	// ha nem sikerult hibauzenet es -1 visszaadasa
-	if (loadedShader == 0)
-	{
-		std::cerr << "[glCreateShader] Error during the initialization of shader: " << _fileName << "!\n";
-		return 0;
-	}
-	
-	// shaderkod betoltese _fileName fajlbol
-	std::string shaderCode = "";
-
-	// _fileName megnyitasa
-	std::ifstream shaderStream(_fileName);
-
-	if (!shaderStream.is_open())
-	{
-		std::cerr << "[std::ifstream] Error during the reading of " << _fileName << " shaderfile's source!\n";
-		return 0;
-	}
-
-	// file tartalmanak betoltese a shaderCode string-be
-	std::string line = "";
-	while (std::getline(shaderStream, line))
-	{
-		shaderCode += line + "\n";
-	}
-
-	shaderStream.close();
-
-	// fajlbol betoltott kod hozzarendelese a shader-hez
-	const char* sourcePointer = shaderCode.c_str();
-	glShaderSource(loadedShader, 1, &sourcePointer, nullptr);
-
-	// shader leforditasa
-	glCompileShader(loadedShader);
-
-	// ellenorizzuk, h minden rendben van-e
-	GLint result = GL_FALSE;
-	int infoLogLength;
-
-	// forditas statuszanak lekerdezese
-	glGetShaderiv(loadedShader, GL_COMPILE_STATUS, &result);
-	glGetShaderiv(loadedShader, GL_INFO_LOG_LENGTH, &infoLogLength);
-
-	if (GL_FALSE == result)
-	{
-		// hibauzenet elkerese es kiirasa
-		std::vector<char> VertexShaderErrorMessage(infoLogLength);
-		glGetShaderInfoLog(loadedShader, infoLogLength, nullptr, &VertexShaderErrorMessage[0]);
-
-		std::cerr << "[glCompileShader] Shader compilation error in " << _fileName << ":\n" << &VertexShaderErrorMessage[0] << std::endl;
-	}
-
-	return loadedShader;
-}
-
 // Flatten vector of vectors into vector
 template<typename T>
 vector<T> flatten(vector<vector<T>> const& vec)
@@ -71,6 +11,39 @@ vector<T> flatten(vector<vector<T>> const& vec)
 	return flattened;
 }
 
+template <typename T, size_t N>
+void printArray(T(&array)[N])
+{
+	std::cout << "[";
+
+	for (size_t i = 0; i < N; i++)
+	{
+		std::cout << array[i];
+		if (i != N - 1)
+		{
+			std::cout << ", ";
+		}
+	}
+
+	std::cout << "]" << std::endl;
+}
+template <typename T>
+void printVector(vector<T> vector)
+{
+	int N = vector.size();
+	std::cout << "[";
+
+	for (int i = 0; i < N; i++)
+	{
+		std::cout << vector[i];
+		if (i != N - 1)
+		{
+			std::cout << ", ";
+		}
+	}
+
+	std::cout << "]" << std::endl;
+}
 
 // Converts from screen coordinates to coordinates of the textures
 vec2 screenToTextureCoords(vec2 coords)
@@ -90,6 +63,14 @@ int matrixToVecCoords(vec2 coords)
 	return int((COMPUTE_WIDTH * coords.y) + (coords.x));
 }
 
+// Converts from matrix coordinate to texture coordinate of a pixel
+vec2 vecToMatrixCoords(int coords)
+{
+	int y = floor(coords / COMPUTE_WIDTH);
+	int x = coords - y * COMPUTE_WIDTH;
+	return vec2(x, y);
+}
+
 // Get current epoch time in milliseconds
 uint64_t getEpochTime()
 {
@@ -104,46 +85,79 @@ GLuint nthBit(GLuint number, GLuint n)
 	return (number >> n) & 1;
 }
 
-// Gets the color of the cell based on it's GLuint value
-vec4 getTileColor(GLuint number)
+// All different tiles the cell can be currently		entropy is the size of this vector
+vector<GLuint> possibleTiles(GLuint number)
 {
-	int possibleTiles = 0;	// amount of tiles the cell can get
-	int tile = 0;			// number of the tile the cell gets the color from
-	vec4 color = vec4(0.5, 0.5, 0.5, 1);
-
-	for (int i = 0; i < TILE_VALUES; i++)
+	vector<GLuint> v;
+	for (GLuint i = 0; i < TILE_VALUES; i++)
 	{
 		if (nthBit(number, i) == 1)
 		{
-			tile = i;
-			possibleTiles++;
+			v.push_back(i);
 		}
 	}
+	return v;
+}
 
-	if (possibleTiles == 1)
+// Get the coordinates of all uncollapsed cells
+vector<vec2> uncollapsedCells()
+{
+	vector<vec2> tiles;
+	for (int i = 0; i < COMPUTE_HEIGHT * COMPUTE_WIDTH; i++)
+	{	
+		GLuint entropy = possibleTiles(textureVectors[currentIteration][i]).size();
+		if (entropy > 1)
+		{
+			tiles.push_back(vecToMatrixCoords(i));
+		}
+	}
+	return tiles;
+}
+
+// Get which tile the 2bit value corresponds to (assuming there is only one possible value)
+int tileValue(GLuint number)
+{
+	int n = 999;
+	if (possibleTiles(number).size() == 1)
 	{
-		color = tileColors[tile];
+		for (int i = 0; i < TILE_VALUES; i++)
+		{
+			if (number >> i == 1)
+			{
+				n = i;
+			}
+		}
+	}
+	
+	return n;
+}
+
+// Gets the color of the cell based on it's GLuint value
+vec4 getTileColor(GLuint number)
+{
+	vec4 color;
+
+	switch (number) {
+	case 0b0001:
+		color = vec4(1, 0, 0, 1);
+		break;
+	case 0b0010:
+		color = vec4(0, 1, 0, 1);
+		break;
+	case 0b0100:
+		color = vec4(0, 0, 1, 1);
+		break;
+	case 0b1000:
+		color = vec4(1, 1, 0, 1);
+		break;
+	case 0b0000:
+		color = vec4(0, 0, 0, 1);
+		break;
+	default:
+		color = vec4(1, 1, 1, 1);
 	}
 
 	return color;
-}
-
-
-template <typename T, size_t N>
-void printArray(T(&array)[N])
-{
-	std::cout << "[";
-
-	for (size_t i = 0; i < N; i++)
-	{
-		std::cout << array[i];
-		if (i != N - 1)
-		{
-			std::cout << ", ";
-		}
-	}
-
-	std::cout << "]" << std::endl;
 }
 
 // Assign an array to the ith array of textureVectors
@@ -167,6 +181,7 @@ GLuint* getTextureVector(GLuint texture)
 	return textureVector;
 }
 
+// Get the value for screenTex from the current iteration of textureVectors 
 void updateScreenTex()
 {
 	GLfloat rgbaVector[4 * COMPUTE_WIDTH * COMPUTE_HEIGHT];
@@ -203,23 +218,29 @@ void updateScreenTex()
 // Use compute shader to create computedTex from current loadTex
 void computeNext(vec2 coordinates)
 {
-
-	if (computedIterations > currentIteration)
+	uint64_t startTime = getEpochTime();
+	GLuint currentValue = textureVectors[currentIteration][matrixToVecCoords(coordinates)];
+	
+	// If the cell is already collapsed (has only 1 or 0 possible tile), don't do anything
+	if (possibleTiles(currentValue).size() > 1)
 	{
-		currentIteration++;
-		updateScreenTex();
-
-		cout << "currentIteration : " << currentIteration << " computedIterations : " << computedIterations << endl;
-	}
-	else
-	{
-		// Load data from textureVectors into loadTex
-		glTextureSubImage2D(loadTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, textureVectors[currentIteration]);
+		// Choose which value to give to the cell
+		GLuint chosenValue = 0;
+		vector<GLuint> possibleValues = possibleTiles(currentValue);
+		
+		srand(time(NULL));
+		int r = rand() % possibleValues.size();
+		chosenValue = pow(2, possibleValues[r]);
+		
+		int tile = tileValue(chosenValue);
 
 		// Converting rules into required format
-		vector<GLint> v = flatten(rules[0]);
+		vector<GLint> v = flatten(rules[tile]);
 		GLint* flattenedRules = new int[v.size()];
 		copy(v.begin(), v.end(), flattenedRules);
+
+		// Load data from textureVectors into loadTex
+		glTextureSubImage2D(loadTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, textureVectors[currentIteration]);
 
 		// Run compute shader
 		glUseProgram(computeProgram);
@@ -227,6 +248,7 @@ void computeNext(vec2 coordinates)
 		// Send uniform values to compute shader
 		glUniform3iv(uLocationRules, MAXIMUM_RULES, flattenedRules);
 		glUniform1ui(uLocationRulesAmount, GLuint(v.size() / 3));
+		glUniform1ui(uLocationChosenValue, chosenValue);
 		glUniform2ui(uLocationCoordinates, coordinates.x, coordinates.y);
 
 		glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
@@ -241,11 +263,66 @@ void computeNext(vec2 coordinates)
 		// Render it
 		updateScreenTex();
 
-		cout << "currentIteration : " << currentIteration  << endl;
+		cout << "currentIteration : " << currentIteration << "   -   ";
 		delete[] flattenedRules;
+		uint64_t endTime = getEpochTime();
+		std::cout << "elapsed time : " << endTime - startTime << " ms" << std::endl;
 	}
 
+}
 
+void runOneIteration()
+{
+	// Find minimum entropy
+	uncollapsed = uncollapsedCells();
+	GLuint minEntropy = TILE_VALUES + 1;
+
+	for (int i = 0; i < uncollapsed.size(); i++)
+	{
+		vec2 coords = uncollapsed[i];
+		GLuint cellValue = textureVectors[currentIteration][matrixToVecCoords(coords)];
+		GLuint entropy = possibleTiles(cellValue).size();
+
+		if (minEntropy > entropy)
+		{
+			minEntropy = entropy;
+		}
+	}
+
+	// Get all cells with minimum entropy, and randomly choose one
+	vector<vec2> minCoords;
+	for (int i = 0; i < uncollapsed.size(); i++)
+	{
+		vec2 coords = uncollapsed[i];
+		GLuint cellValue = textureVectors[currentIteration][matrixToVecCoords(coords)];
+		GLuint entropy = possibleTiles(cellValue).size();
+		if (entropy == minEntropy)
+		{
+			minCoords.push_back(coords);
+		}
+	}
+
+	if (minCoords.size() != 0)
+	{
+		// Choose random cell
+		srand(time(NULL));
+		int r = rand() % minCoords.size();
+		vec2 chosenCoords = minCoords[r];
+
+		// Collapse cell
+		computeNext(chosenCoords);
+	}
+}
+
+void runWFC()
+{
+	uncollapsed = uncollapsedCells();
+
+	// Repeat until all cells are collapsed
+	while (uncollapsed.size() != 0)
+	{
+		runOneIteration();
+	}
 }
 
 // Input
@@ -254,6 +331,16 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 	{
 		glfwSetWindowShouldClose(window, true);
+	}
+	if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+	{
+		runOneIteration();
+		
+	}
+	if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+	{
+		runWFC();
+
 	}
 
 }
@@ -270,17 +357,17 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 			if (button == GLFW_MOUSE_BUTTON_LEFT)
 			{
-				uint64_t startTime = getEpochTime();
+				
 				computeNext(screenToTextureCoords(vec2(mousexpos, mouseypos)));
-				uint64_t endTime = getEpochTime();
-				std::cout << "elapsed time : " << endTime - startTime << " ms" << std::endl;
+				
 			}
 
 			if (button == GLFW_MOUSE_BUTTON_RIGHT)
 			{
-				cout << " (" << coords.x << " , " << coords.y << ")" << endl;
-				bitset<8> x(textureVectors[currentIteration][matrixToVecCoords(coords)]);
+				cout << " (" << coords.x << " , " << coords.y << ")  ";
+				bitset<TILE_VALUES> x(textureVectors[currentIteration][matrixToVecCoords(coords)]);
 				cout << x << endl;
+				//cout << possibleTiles((textureVectors[currentIteration][matrixToVecCoords(coords)])).size() << endl;
 
 			}
 

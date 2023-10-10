@@ -6,6 +6,7 @@ layout (binding = 2, r32ui) writeonly uniform uimage2D outputImage;
 
 uniform ivec3 rules[100];
 uniform uint rulesAmount;
+uniform uint chosenValue;
 uniform uvec2 coordinates;
 
 void main()
@@ -24,16 +25,7 @@ void main()
 	// choose value for the clicked cell
 	if (pixelCoords == coordinates)
 	{
-		uint loadedPixel = imageLoad(inputImage, pixelCoords)[0];
-		
-		for (int i = 7; i >= 0; i--)
-		{
-			if ( ((loadedPixel >> i) & 1) == 1 )
-			{
-				pixel = uint(pow(2, i));
-			}
-		}
-		
+		pixel = chosenValue;
 	}
 
 	imageStore(outputImage, pixelCoords, uvec4(pixel, 0u, 0u, 0u));
