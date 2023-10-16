@@ -1,0 +1,32 @@
+#version 460 core
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout (binding = 1, r32ui) readonly uniform uimage2D inputImage;
+layout (binding = 2, r32ui) writeonly uniform uimage2D outputImage;
+
+uniform ivec3 rules[100];
+uniform uint rulesAmount;
+uniform uint chosenValue;
+uniform uvec2 coordinates;
+
+void main()
+{
+	ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
+	uint pixel = imageLoad(inputImage, pixelCoords)[0];
+	
+	for (int i = 0; i < rulesAmount; i++)
+	{
+		if (pixelCoords == coordinates + ivec2(rules[i][0], rules[i][1]))
+		{
+			pixel = pixel &  rules[i][2];
+		}
+	}
+
+	// choose value for the clicked cell
+	if (pixelCoords == coordinates)
+	{
+		pixel = chosenValue;
+	}
+
+	imageStore(outputImage, pixelCoords, uvec4(pixel, 0u, 0u, 0u));
+}

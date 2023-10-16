@@ -1,0 +1,21 @@
+﻿C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(514,5): warning MSB8028: The intermediate directory (x64\Debug\) contains files shared from another project (OpenGL Context.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  main.cpp
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(92,8): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(131,77): warning C4267: 'initializing': conversion from 'size_t' to 'GLuint', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(231,26): warning C4244: '=': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(256,20): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(275,64): warning C4244: 'argument': conversion from 'T' to 'GLuint', possible loss of data
+          with
+          [
+              T=float
+          ]
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(275,49): warning C4244: 'argument': conversion from 'T' to 'GLuint', possible loss of data
+          with
+          [
+              T=float
+          ]
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(307,51): warning C4267: 'initializing': conversion from 'size_t' to 'GLuint', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(321,51): warning C4267: 'initializing': conversion from 'size_t' to 'GLuint', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\main.cpp(6,12): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\main.cpp(81,8): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+  OpenGL Context.vcxproj -> C:\Users\Tade\Desktop\random\Wave Function Collapse\x64\Debug\Wave Function Collapse.exe
