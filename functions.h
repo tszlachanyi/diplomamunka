@@ -243,54 +243,69 @@ void computeNext(vec2 coordinates)
 {
 	uint64_t startTime = getEpochTime();
 	GLuint currentValue = textureVectors[currentIteration][matrixToVecCoords(coordinates)];
+	vector<vec2> collapsedTiles;
+
+	// Choose which value to give to the cell
+	GLuint chosenValue = 0;
+	vector<GLuint> possibleValues = possibleTiles(currentValue);
 	
-	// If the cell is already collapsed (has only 1 or 0 possible tile), don't do anything
-	if (possibleTiles(currentValue).size() > 1)
+	int r = rand() % possibleValues.size();
+	chosenValue = pow(2, possibleValues[r]);
+	
+	int tile = tileValue(chosenValue);
+
+	// Get which tiles are affected by the rules (and are not collapsed already)
+	for  (int i = 0; i < rules[tile].size(); i++)
 	{
-		// Choose which value to give to the cell
-		GLuint chosenValue = 0;
-		vector<GLuint> possibleValues = possibleTiles(currentValue);
-		
-		
-		int r = rand() % possibleValues.size();
-		chosenValue = pow(2, possibleValues[r]);
-		
-		int tile = tileValue(chosenValue);
-
-		// Converting rules into required format
-		vector<GLint> v = flatten(rules[tile]);
-		GLint* flattenedRules = new int[v.size()];
-		copy(v.begin(), v.end(), flattenedRules);
-
-		// Load data from textureVectors into loadTex
-		glTextureSubImage2D(loadTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, textureVectors[currentIteration]);
-
-		// Run compute shader
-		glUseProgram(computeProgram);
-
-		// Send uniform values to compute shader
-		glUniform3iv(uLocationRules, MAXIMUM_RULES, flattenedRules);
-		glUniform1ui(uLocationRulesAmount, GLuint(v.size() / 3));
-		glUniform1ui(uLocationChosenValue, chosenValue);
-		glUniform2ui(uLocationCoordinates, coordinates.x, coordinates.y);
-
-		glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
-		glMemoryBarrier(GL_ALL_BARRIER_BITS);
-
-		// Save the new iteration
-		currentIteration++;
-		computedIterations = currentIteration;
-		GLuint* textureVector = getTextureVector(computedTex);
-		assignToTextureVectorsArray(currentIteration, textureVector);
-
-		// Render it
-		updateScreenTex();
-
-		cout << "currentIteration : " << currentIteration << "   -   ";
-		delete[] flattenedRules;
-		uint64_t endTime = getEpochTime();
-		std::cout << "elapsed time : " << endTime - startTime << " ms" << std::endl;
+		vec2 affectedTile = coordinates - vec2(rules[tile][i][0], rules[tile][i][1]);
+		if (possibleTiles(textureVectors[currentIteration][matrixToVecCoords(affectedTile)]).size() > 1)
+		{
+			collapsedTiles.push_back(affectedTile);
+		}
 	}
+
+	// Converting rules into required format
+	vector<GLint> v = flatten(rules[tile]);
+	GLint* flattenedRules = new int[v.size()];
+	copy(v.begin(), v.end(), flattenedRules);
+
+	// Load data from textureVectors into loadTex
+	glTextureSubImage2D(loadTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, textureVectors[currentIteration]);
+
+	// Run compute shader
+	glUseProgram(computeProgram);
+
+	// Send uniform values to compute shader
+	glUniform3iv(uLocationRules, MAXIMUM_RULES, flattenedRules);
+	glUniform1ui(uLocationRulesAmount, GLuint(v.size() / 3));
+	glUniform1ui(uLocationChosenValue, chosenValue);
+	glUniform2ui(uLocationCoordinates, coordinates.x, coordinates.y);
+
+	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+	// Save the new iteration
+	currentIteration++;
+	computedIterations = currentIteration;
+	GLuint* textureVector = getTextureVector(computedTex);
+	assignToTextureVectorsArray(currentIteration, textureVector);
+
+	// Render it
+	updateScreenTex();
+
+	// Print time
+	cout << "currentIteration : " << currentIteration << "   -   ";
+	delete[] flattenedRules;
+	uint64_t endTime = getEpochTime();
+	cout << "elapsed time : " << endTime - startTime << " ms" << endl;
+
+	// New iteration if collapsed a tile
+	for (int i = 0; i < collapsedTiles.size(); i++)
+	{
+		if (possibleTiles(textureVectors[currentIteration][matrixToVecCoords(collapsedTiles[i])]).size() == 1)
+		computeNext(collapsedTiles[i]);
+	}
+	
 
 }
 
@@ -381,8 +396,12 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 			if (button == GLFW_MOUSE_BUTTON_LEFT)
 			{
-				
-				computeNext(screenToTextureCoords(vec2(mousexpos, mouseypos)));
+				GLuint currentValue = textureVectors[currentIteration][matrixToVecCoords(screenToTextureCoords(vec2(mousexpos, mouseypos)))];
+				// If the cell is already collapsed (has only 1 or 0 possible tile), don't do anything
+				if (possibleTiles(currentValue).size() > 1)
+				{
+					computeNext(screenToTextureCoords(vec2(mousexpos, mouseypos)));
+				}
 				
 			}
 
