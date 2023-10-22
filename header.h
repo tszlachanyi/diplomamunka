@@ -11,7 +11,8 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <bitset>		 
+#include <bitset>		
+#include <array>
 
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
@@ -44,7 +45,7 @@ GLuint screenVertexShader;
 GLuint screenFragmentShader;
 GLuint computeShader;
 
-GLuint textureVectors[MAXIMUM_ITERATIONS][COMPUTE_WIDTH * COMPUTE_HEIGHT];
+array<GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> textureVector;
 vector<vec2> uncollapsed;
 
 GLuint screenShaderProgram;
@@ -57,9 +58,7 @@ GLint uLocationRulesAmount;
 GLint uLocationChosenValue;
 GLint uLocationCoordinates;
 
-
 GLint currentIteration = 0;
-GLint computedIterations = 0;
 
 
 
@@ -67,14 +66,33 @@ double mousexpos, mouseypos;
 bool clickingAllowed = true;
 
 vector<vector<vector<GLint>>> rules =
-	 {
-		{{0,1,0b1110} , {1,0,0b1110} , {0,-1,0b1110}, {-1,0,0b1110}},
-	 	{{0,1,0b1101} , {1,0,0b1101} , {0,-1,0b1101}, {-1,0,0b1101}},
-	 	{{0,1,0b1011} , {1,0,0b1011} , {0,-1,0b1011}, {-1,0,0b1011}},
-	 	{{0,1,0b0111} , {1,0,0b0111} , {0,-1,0b0111}, {-1,0,0b0111}},
-	 };
+{
+   {{0,1,0b1110} , {1,0,0b1110} , {0,-1,0b1110}, {-1,0,0b1110}},
+   {{0,1,0b1101} , {1,0,0b1101} , {0,-1,0b1101}, {-1,0,0b1101}},
+   {{0,1,0b1011} , {1,0,0b1011} , {0,-1,0b1011}, {-1,0,0b1011}},
+   {{0,1,0b0111} , {1,0,0b0111} , {0,-1,0b0111}, {-1,0,0b0111}},
+};
 
-// rules vector explanation :
+// example for wrong rules
+//vector<vector<vector<GLint>>> rules =
+//{
+//   {{0,1,0b0001}},
+//   {{1,0,0b0010}},
+//   {{0,-1,0b0100}},
+//   {{-1,0,0b1000}},
+//};
+
+//array<array<array<GLint, 100>, MAXIMUM_RULES>, TILE_VALUES> rules =
+//{{
+//   {{{0,1,0b1110} , {1,0,0b1110} , {0,-1,0b1110}, {-1,0,0b1110}}},
+//   {{{0,1,0b1101} , {1,0,0b1101} , {0,-1,0b1101}, {-1,0,0b1101}}},
+//   {{{0,1,0b1011} , {1,0,0b1011} , {0,-1,0b1011}, {-1,0,0b1011}}},
+//   {{{0,1,0b0111} , {1,0,0b0111} , {0,-1,0b0111}, {-1,0,0b0111}}},
+//}};
+
+
+
+// rules array explanation :
 // in rules[a][b][c] gives one rule
 //		a : The value of the current tile we are using the role on
 //		b : Number of the rule

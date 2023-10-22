@@ -11,22 +11,22 @@ vector<T> flatten(vector<vector<T>> const& vec)
 	return flattened;
 }
 
-template <typename T, size_t N>
-void printArray(T(&array)[N])
-{
-	std::cout << "[";
-
-	for (size_t i = 0; i < N; i++)
-	{
-		std::cout << array[i];
-		if (i != N - 1)
-		{
-			std::cout << ", ";
-		}
+template <typename T, std::size_t N>
+void copyArray(const std::array<T, N>& source, std::array<T, N>& destination) {
+	for (std::size_t i = 0; i < N; ++i) {
+		destination[i] = source[i];
 	}
+}
 
+template <typename T, std::size_t N>
+void printArray(const std::array<T, N>& arr) {
+	std::cout << "[";
+	for (const T& element : arr) {
+		std::cout << element << " ";
+	}
 	std::cout << "]" << std::endl;
 }
+
 template <typename T>
 void printVector(vector<T> vector)
 {
@@ -94,6 +94,19 @@ vec2 vecToMatrixCoords(int coords)
 	return vec2(x, y);
 }
 
+// Checks if a coordinate is valid (inside the grid)
+bool isInsideGrid(vec2 coords)
+{
+	if (coords.x < COMPUTE_WIDTH && coords.x >= 0 && coords.y < COMPUTE_HEIGHT && coords.y >= 0)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 // Get current epoch time in milliseconds
 uint64_t getEpochTime()
 {
@@ -128,7 +141,7 @@ vector<vec2> uncollapsedCells()
 	vector<vec2> tiles;
 	for (int i = 0; i < COMPUTE_HEIGHT * COMPUTE_WIDTH; i++)
 	{	
-		GLuint entropy = possibleTiles(textureVectors[currentIteration][i]).size();
+		GLuint entropy = possibleTiles(textureVector[i]).size();
 		if (entropy > 1)
 		{
 			tiles.push_back(vecToMatrixCoords(i));
@@ -183,28 +196,19 @@ vec4 getTileColor(GLuint number)
 	return color;
 }
 
-// Assign an array to the ith array of textureVectors
-void assignToTextureVectorsArray(GLuint i, GLuint vector[COMPUTE_WIDTH * COMPUTE_HEIGHT])
-{
-	for (int j = 0; j <= COMPUTE_WIDTH * COMPUTE_HEIGHT; j++)
-	{
-		textureVectors[i][j] = vector[j];
-	}
-}
-
 // Get vector format of a GL_R32UI texture
-GLuint* getTextureVector(GLuint texture)
+array <GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> getTextureVector(GLuint texture)
 {
-	GLuint* textureVector = new GLuint[COMPUTE_WIDTH * COMPUTE_HEIGHT];
+	array <GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> textureVector;
 	//GLuint textureVector[COMPUTE_WIDTH * COMPUTE_HEIGHT];
 
 	glBindTexture(GL_TEXTURE_2D, texture);
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, textureVector);
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &textureVector);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return textureVector;
 }
 
-// Get the value for screenTex from the current iteration of textureVectors 
+// Get the value for screenTex from textureVector
 void updateScreenTex()
 {
 	GLfloat rgbaVector[4 * COMPUTE_WIDTH * COMPUTE_HEIGHT];
@@ -213,7 +217,7 @@ void updateScreenTex()
 	// Get colors for the screen from the textureVectors array
 	for (int j = 0; j < COMPUTE_WIDTH * COMPUTE_HEIGHT; j++)
 	{
-		vec4 tileColor = getTileColor(textureVectors[currentIteration][j]);
+		vec4 tileColor = getTileColor(textureVector[j]);
 		
 
 		for (int i = 0; i <= 3; i++)
@@ -242,7 +246,7 @@ void updateScreenTex()
 void computeNext(vec2 coordinates)
 {
 	uint64_t startTime = getEpochTime();
-	GLuint currentValue = textureVectors[currentIteration][matrixToVecCoords(coordinates)];
+	GLuint currentValue = textureVector[matrixToVecCoords(coordinates)];
 	vector<vec2> collapsedTiles;
 
 	// Choose which value to give to the cell
@@ -257,11 +261,15 @@ void computeNext(vec2 coordinates)
 	// Get which tiles are affected by the rules (and are not collapsed already)
 	for  (int i = 0; i < rules[tile].size(); i++)
 	{
-		vec2 affectedTile = coordinates - vec2(rules[tile][i][0], rules[tile][i][1]);
-		if (possibleTiles(textureVectors[currentIteration][matrixToVecCoords(affectedTile)]).size() > 1)
+		vec2 affectedTile = coordinates + vec2(rules[tile][i][0], rules[tile][i][1]);
+		if (isInsideGrid(affectedTile))
 		{
-			collapsedTiles.push_back(affectedTile);
+			if (possibleTiles(textureVector[matrixToVecCoords(affectedTile)]).size() > 1)
+			{
+				collapsedTiles.push_back(affectedTile);
+			}
 		}
+
 	}
 
 	// Converting rules into required format
@@ -269,8 +277,8 @@ void computeNext(vec2 coordinates)
 	GLint* flattenedRules = new int[v.size()];
 	copy(v.begin(), v.end(), flattenedRules);
 
-	// Load data from textureVectors into loadTex
-	glTextureSubImage2D(loadTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, textureVectors[currentIteration]);
+	// Load data from textureVector into loadTex
+	glTextureSubImage2D(loadTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &textureVector);
 
 	// Run compute shader
 	glUseProgram(computeProgram);
@@ -286,9 +294,9 @@ void computeNext(vec2 coordinates)
 
 	// Save the new iteration
 	currentIteration++;
-	computedIterations = currentIteration;
-	GLuint* textureVector = getTextureVector(computedTex);
-	assignToTextureVectorsArray(currentIteration, textureVector);
+	array <GLuint, COMPUTE_WIDTH * COMPUTE_HEIGHT> vector = getTextureVector(computedTex);
+	
+	copyArray(vector, textureVector);
 
 	// Render it
 	updateScreenTex();
@@ -302,11 +310,9 @@ void computeNext(vec2 coordinates)
 	// New iteration if collapsed a tile
 	for (int i = 0; i < collapsedTiles.size(); i++)
 	{
-		if (possibleTiles(textureVectors[currentIteration][matrixToVecCoords(collapsedTiles[i])]).size() == 1)
+		if (possibleTiles(textureVector[matrixToVecCoords(collapsedTiles[i])]).size() == 1)
 		computeNext(collapsedTiles[i]);
 	}
-	
-
 }
 
 void runOneIteration()
@@ -318,7 +324,7 @@ void runOneIteration()
 	for (int i = 0; i < uncollapsed.size(); i++)
 	{
 		vec2 coords = uncollapsed[i];
-		GLuint cellValue = textureVectors[currentIteration][matrixToVecCoords(coords)];
+		GLuint cellValue = textureVector[matrixToVecCoords(coords)];
 		GLuint entropy = possibleTiles(cellValue).size();
 
 		if (minEntropy > entropy)
@@ -332,7 +338,7 @@ void runOneIteration()
 	for (int i = 0; i < uncollapsed.size(); i++)
 	{
 		vec2 coords = uncollapsed[i];
-		GLuint cellValue = textureVectors[currentIteration][matrixToVecCoords(coords)];
+		GLuint cellValue = textureVector[matrixToVecCoords(coords)];
 		GLuint entropy = possibleTiles(cellValue).size();
 		if (entropy == minEntropy)
 		{
@@ -396,7 +402,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 			if (button == GLFW_MOUSE_BUTTON_LEFT)
 			{
-				GLuint currentValue = textureVectors[currentIteration][matrixToVecCoords(screenToTextureCoords(vec2(mousexpos, mouseypos)))];
+				GLuint currentValue = textureVector[matrixToVecCoords(screenToTextureCoords(vec2(mousexpos, mouseypos)))];
 				// If the cell is already collapsed (has only 1 or 0 possible tile), don't do anything
 				if (possibleTiles(currentValue).size() > 1)
 				{
@@ -408,9 +414,9 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 			if (button == GLFW_MOUSE_BUTTON_RIGHT)
 			{
 				cout << " (" << coords.x << " , " << coords.y << ")  ";
-				bitset<TILE_VALUES> x(textureVectors[currentIteration][matrixToVecCoords(coords)]);
+				bitset<TILE_VALUES> x(textureVector[matrixToVecCoords(coords)]);
 				cout << x << endl;
-				//cout << possibleTiles((textureVectors[currentIteration][matrixToVecCoords(coords)])).size() << endl;
+				//cout << possibleTiles((textureVector[matrixToVecCoords(coords)])).size() << endl;
 
 			}
 

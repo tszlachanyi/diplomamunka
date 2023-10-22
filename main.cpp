@@ -80,12 +80,12 @@ int main()
 
 	int v = pow(2, TILE_VALUES) - 1;
 
-	GLuint arr[COMPUTE_WIDTH * COMPUTE_HEIGHT];
+	array <GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> arr;
 	for (int i = 0; i < COMPUTE_WIDTH * COMPUTE_HEIGHT; i++) {
 		arr[i] = v;
 	}
 
-	assignToTextureVectorsArray(0, arr);
+	copyArray(arr, textureVector);
 	updateScreenTex();
 
 	// Main Loop
