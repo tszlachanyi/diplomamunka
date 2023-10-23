@@ -59,7 +59,12 @@ void initTexture(GLuint* texture, int unitIndex, int access, int format, vec2 si
 void Render()
 {
 	glUseProgram(screenShaderProgram);
-	if (divideCells)
+
+	//uniforms
+	glUniform1ui(uLocationGridThickness, GRID_THICKNESS);
+	glUniform4ui(uLocationScreenParams, SCREEN_WIDTH, SCREEN_HEIGHT, COMPUTE_WIDTH, COMPUTE_HEIGHT);
+
+	if (DIVIDE_CELLS)
 	{
 		glBindTextureUnit(0, screenTexDivided);
 	}
@@ -91,11 +96,11 @@ vec2 screenToTextureCoords(vec2 coords)
 // Converts from screen coordinates to coordinates of the divided texture
 vec2 screenToDividedTextureCoords(vec2 coords)
 {
-	float xRatio = SCREEN_WIDTH / COMPUTE_WIDTH / cellDivision;
-	float yRatio = SCREEN_HEIGHT / COMPUTE_HEIGHT / cellDivision;
+	float xRatio = SCREEN_WIDTH / COMPUTE_WIDTH / CELL_DIVISION;
+	float yRatio = SCREEN_HEIGHT / COMPUTE_HEIGHT / CELL_DIVISION;
 
 	int x = int(floor(coords.x / xRatio));
-	int y = (COMPUTE_HEIGHT * cellDivision - 1) - int(floor(coords.y / yRatio));
+	int y = (COMPUTE_HEIGHT * CELL_DIVISION - 1) - int(floor(coords.y / yRatio));
 
 	return vec2(x, y);
 }
@@ -105,14 +110,13 @@ GLuint getTileValueInDividedGrid(vec2 coords)
 {
 	vec2 textureCoords = screenToTextureCoords(coords);
 	vec2 dividedTextureCoords = screenToDividedTextureCoords(coords);
-	vec2 tileCoords = vec2(dividedTextureCoords.x, dividedTextureCoords.y) - vec2(textureCoords.x * cellDivision, textureCoords.y * cellDivision);
+	vec2 tileCoords = vec2(dividedTextureCoords.x, dividedTextureCoords.y) - vec2(textureCoords.x * CELL_DIVISION, textureCoords.y * CELL_DIVISION);
 	
-	int tileNumber = tileCoords.x + tileCoords.y * cellDivision;
-	int tileValue = pow(2, tileNumber);
-
+	int tileNumber = tileCoords.x + tileCoords.y * CELL_DIVISION;
+	
 	//cout << tileCoords.x << "," << tileCoords.y << "   " << tileValue << endl;
 
-	return tileValue;
+	return tileNumber;
 }
 
 // Converts from matrix coordinate to texture coordinate of a pixel
@@ -248,7 +252,7 @@ void updateScreenTex()
 {
 	vec2 mouseCoords = screenToTextureCoords(vec2(mousexpos, mouseypos));
 
-	if (divideCells == false)
+	if (DIVIDE_CELLS == false)
 	{
 		GLfloat rgbaVector[4 * COMPUTE_WIDTH * COMPUTE_HEIGHT];
 
@@ -281,17 +285,17 @@ void updateScreenTex()
 	}
 	else
 	{
-		GLfloat rgbaVector[4 * COMPUTE_WIDTH * COMPUTE_HEIGHT * cellDivision * cellDivision];
+		GLfloat rgbaVector[4 * COMPUTE_WIDTH * COMPUTE_HEIGHT * CELL_DIVISION * CELL_DIVISION];
 
 		// Get colors for the screen from the textureVectors array
-		for (int j = 0; j < COMPUTE_HEIGHT * cellDivision; j++)
+		for (int j = 0; j < COMPUTE_HEIGHT * CELL_DIVISION; j++)
 		{
-			for (int i = 0; i < COMPUTE_WIDTH * cellDivision; i++)
+			for (int i = 0; i < COMPUTE_WIDTH * CELL_DIVISION; i++)
 			{
 				vec4 tileColor;
-				vec2 cellCoords = vec2(floor(i / cellDivision) , floor(j / cellDivision));
-				vec2 tileCoords = vec2(i,j) - vec2(cellCoords.x * cellDivision, cellCoords.y * cellDivision);
-				int tileNumber = tileCoords.x + tileCoords.y * cellDivision;
+				vec2 cellCoords = vec2(floor(i / CELL_DIVISION) , floor(j / CELL_DIVISION));
+				vec2 tileCoords = vec2(i,j) - vec2(cellCoords.x * CELL_DIVISION, cellCoords.y * CELL_DIVISION);
+				int tileNumber = tileCoords.x + tileCoords.y * CELL_DIVISION;
 				GLuint cellValue = textureVector[matrixToVecCoords(cellCoords)];
 				//cout << cellCoords.x << " , " << cellCoords.y << "     " << tileNumber << endl;
 
@@ -310,12 +314,12 @@ void updateScreenTex()
 
 				for (int k = 0; k <= 3; k++)
 				{
-					rgbaVector[4 * (COMPUTE_HEIGHT * cellDivision * j + i) + k] = tileColor[k];
+					rgbaVector[4 * (COMPUTE_HEIGHT * CELL_DIVISION * j + i) + k] = tileColor[k];
 				}
 			}
 		}
 
-		glTextureSubImage2D(screenTexDivided, 0, 0, 0, COMPUTE_WIDTH * cellDivision, COMPUTE_HEIGHT * cellDivision, GL_RGBA, GL_FLOAT, rgbaVector);
+		glTextureSubImage2D(screenTexDivided, 0, 0, 0, COMPUTE_WIDTH * CELL_DIVISION, COMPUTE_HEIGHT * CELL_DIVISION, GL_RGBA, GL_FLOAT, rgbaVector);
 	}
 
 
@@ -515,28 +519,34 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 	if (action == GLFW_PRESS)
 	{
 		vec2 mouseCoords = vec2(mousexpos, mouseypos);
-		vec2 dividedCoords = screenToDividedTextureCoords(mouseCoords);
 		vec2 coords = screenToTextureCoords(mouseCoords);
 		
 		//cout << dividedCoords.x <<  " , " << dividedCoords.y << endl;
 
 		if (button == GLFW_MOUSE_BUTTON_LEFT)
 		{
-			if (isInsideGrid(screenToTextureCoords(mouseCoords)))
+			if (isInsideGrid(coords))
 			{
 
-				GLuint currentValue = textureVector[matrixToVecCoords(screenToTextureCoords(mouseCoords))];
+				GLuint currentValue = textureVector[matrixToVecCoords(coords)];
 				// If the cell is already collapsed (has only 1 or 0 possible tile), don't do anything
 				if (possibleTiles(currentValue).size() > 1)
 				{
-					if (divideCells == false)
+					if (DIVIDE_CELLS == false)
 					{
-						computeNext(screenToTextureCoords(mouseCoords));
+						computeNext(coords);
 					}
 					else
 					{
-						GLuint tileValue = getTileValueInDividedGrid(mouseCoords);
-						computeNext(screenToTextureCoords(mouseCoords), tileValue, true);
+						GLuint tileNumber = getTileValueInDividedGrid(mouseCoords);
+						vector<GLuint> v = possibleTiles(currentValue);
+						printVector(v);
+						if (find(v.begin(), v.end(), tileNumber) != v.end()) // If the chosen value is still a possible value for the cell, chose it 
+						{
+							GLuint tileValue = pow(2, tileNumber);
+							computeNext(screenToTextureCoords(mouseCoords), tileValue, true);
+						}
+						
 					}
 					
 				}

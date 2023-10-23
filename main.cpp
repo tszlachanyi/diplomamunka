@@ -52,7 +52,7 @@ int main()
 	initTexture(&screenTex, 0, GL_WRITE_ONLY, GL_RGBA32F);
 	initTexture(&loadTex, 1, GL_READ_WRITE, GL_R32UI);
 	initTexture(&computedTex, 2, GL_READ_WRITE, GL_R32UI);
-	initTexture(&screenTexDivided, 3, GL_WRITE_ONLY, GL_RGBA32F, vec2(COMPUTE_WIDTH * cellDivision, COMPUTE_HEIGHT * cellDivision));
+	initTexture(&screenTexDivided, 3, GL_WRITE_ONLY, GL_RGBA32F, vec2(COMPUTE_WIDTH * CELL_DIVISION, COMPUTE_HEIGHT * CELL_DIVISION));
 
 	// Shaders
 	screenVertexShader = loadShader(GL_VERTEX_SHADER, "vertexShader.vert");
@@ -75,6 +75,9 @@ int main()
 	uLocationRulesAmount = glGetUniformLocation(computeProgram, "rulesAmount");
 	uLocationChosenValue = glGetUniformLocation(computeProgram, "chosenValue");
 	uLocationCoordinates = glGetUniformLocation(computeProgram, "coordinates");
+
+	uLocationScreenParams = glGetUniformLocation(screenShaderProgram, "screenParams");
+	uLocationGridThickness = glGetUniformLocation(screenShaderProgram, "gridThickness");
 
 
 	// Load initial position

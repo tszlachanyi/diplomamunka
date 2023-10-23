@@ -1,6 +1,5 @@
 // TODO :
-// CHANGE TO MANUAL COLLAPSE CHOICE
-// MULTIPLE ITERATIONS IN COMPUTE NEXT
+// Ui
 
 
 #include <iostream>
@@ -13,10 +12,13 @@
 #include <vector>
 #include <bitset>		
 #include <array>
+#include <cmath>
 
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 #include "glm/glm.hpp"
+
+
 
 using namespace std;
 using namespace std::chrono;
@@ -35,10 +37,12 @@ const unsigned int MAXIMUM_ITERATIONS = 5000;
 const unsigned int MAXIMUM_RULES = 100;
 const unsigned int TILE_VALUES = 4;
 
-const bool divideCells = true;
-const unsigned int cellDivision = 2;
+const unsigned int GRID_THICKNESS = 1;
 
-bool vSync = false;
+const bool DIVIDE_CELLS = false;
+const unsigned int CELL_DIVISION = 2;
+
+bool vSync = true;
 
 GLuint screenTex;
 GLuint computedTex;
@@ -61,6 +65,9 @@ GLint uLocationRules;
 GLint uLocationRulesAmount;
 GLint uLocationChosenValue;
 GLint uLocationCoordinates;
+GLint uLocationScreenParams;
+GLint uLocationGridThickness;
+
 
 GLint currentIteration = 0;
 

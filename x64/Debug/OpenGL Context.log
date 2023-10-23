@@ -10,36 +10,38 @@ C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(55,46): warning 
           [
               T=float
           ]
-C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(110,17): warning C4244: 'initializing': conversion from 'T' to 'int', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(115,17): warning C4244: 'initializing': conversion from 'T' to 'int', possible loss of data
           with
           [
               T=float
           ]
-C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(111,16): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(127,8): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(179,58): warning C4267: 'initializing': conversion from 'size_t' to 'GLuint', possible loss of data
-C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(274,27): warning C4244: '=': conversion from 'double' to 'GLfloat', possible loss of data
-C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(294,20): warning C4244: 'initializing': conversion from 'T' to 'int', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(131,8): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(183,58): warning C4267: 'initializing': conversion from 'size_t' to 'GLuint', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(278,27): warning C4244: '=': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(298,20): warning C4244: 'initializing': conversion from 'T' to 'int', possible loss of data
           with
           [
               T=float
           ]
-C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(301,20): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(328,8): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(354,20): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
-C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(390,63): warning C4244: 'argument': conversion from 'T' to 'GLuint', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(305,20): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(332,8): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(358,20): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(394,63): warning C4244: 'argument': conversion from 'T' to 'GLuint', possible loss of data
           with
           [
               T=float
           ]
-C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(390,48): warning C4244: 'argument': conversion from 'T' to 'GLuint', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(394,48): warning C4244: 'argument': conversion from 'T' to 'GLuint', possible loss of data
           with
           [
               T=float
           ]
-C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(428,51): warning C4267: 'initializing': conversion from 'size_t' to 'GLuint', possible loss of data
-C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(442,51): warning C4267: 'initializing': conversion from 'size_t' to 'GLuint', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(432,51): warning C4267: 'initializing': conversion from 'size_t' to 'GLuint', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(446,51): warning C4267: 'initializing': conversion from 'size_t' to 'GLuint', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(546,25): warning C4244: 'initializing': conversion from 'double' to 'GLuint', possible loss of data
 C:\Users\Tade\Desktop\random\Wave Function Collapse\main.cpp(6,12): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(33,1): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Tade\Desktop\random\Wave Function Collapse\functions.h(543): message : see reference to function template instantiation 'void printVector<GLuint>(std::vector<GLuint,std::allocator<GLuint>>)' being compiled
 glfw3.lib(init.obj) : warning LNK4099: PDB 'glfw3.pdb' was not found with 'glfw3.lib(init.obj)' or at 'C:\Users\Tade\Desktop\random\Wave Function Collapse\x64\Debug\glfw3.pdb'; linking object as if no debug info
 glfw3.lib(window.obj) : warning LNK4099: PDB 'glfw3.pdb' was not found with 'glfw3.lib(window.obj)' or at 'C:\Users\Tade\Desktop\random\Wave Function Collapse\x64\Debug\glfw3.pdb'; linking object as if no debug info
 glfw3.lib(input.obj) : warning LNK4099: PDB 'glfw3.pdb' was not found with 'glfw3.lib(input.obj)' or at 'C:\Users\Tade\Desktop\random\Wave Function Collapse\x64\Debug\glfw3.pdb'; linking object as if no debug info
