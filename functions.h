@@ -241,6 +241,20 @@ void updateScreenTex()
 	glTextureSubImage2D(screenTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RGBA, GL_FLOAT, rgbaVector);
 }
 
+// Initialize the screen with a blank texture
+void initScreen()
+{
+	int v = pow(2, TILE_VALUES) - 1;
+
+	array <GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> arr;
+	for (int i = 0; i < COMPUTE_WIDTH * COMPUTE_HEIGHT; i++) {
+		arr[i] = v;
+	}
+
+	currentIteration = 0;
+	copyArray(arr, textureVector);
+	updateScreenTex();
+}
 
 // Use compute shader to create computedTex from current loadTex
 void computeNext(vec2 coordinates)
@@ -360,14 +374,30 @@ void runOneIteration()
 
 void runWFC()
 {
+	uint64_t startTime = getEpochTime();
+	
 	uncollapsed = uncollapsedCells();
-
+	
 	// Repeat until all cells are collapsed
 	while (uncollapsed.size() != 0)
 	{
 		runOneIteration();
 		Render();
 	}
+
+	////Test for run time
+	//for (int i = 0; i < COMPUTE_WIDTH; i++)
+	//{
+	//	for (int j = 0; j < COMPUTE_HEIGHT; j++)
+	//	{
+	//		computeNext(vec2(i, j));
+	//		Render();
+	//	}
+	//	
+	//}
+
+	uint64_t endTime = getEpochTime();
+	cout << "Whole algorithm - elapsed time : " << endTime - startTime << " ms" << endl;
 }
 
 // Input
@@ -387,6 +417,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		runWFC();
 
 	}
+	if (key == GLFW_KEY_R && action == GLFW_PRESS)
+	{
+		initScreen();
+	}
 
 }
 
@@ -397,10 +431,9 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 		vec2 coords = screenToTextureCoords(vec2(mousexpos, mouseypos));
 		
 
-		if (clickingAllowed)
+		if (button == GLFW_MOUSE_BUTTON_LEFT)
 		{
-
-			if (button == GLFW_MOUSE_BUTTON_LEFT)
+			if (isInsideGrid(screenToTextureCoords(vec2(mousexpos, mouseypos))))
 			{
 				GLuint currentValue = textureVector[matrixToVecCoords(screenToTextureCoords(vec2(mousexpos, mouseypos)))];
 				// If the cell is already collapsed (has only 1 or 0 possible tile), don't do anything
@@ -408,20 +441,21 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 				{
 					computeNext(screenToTextureCoords(vec2(mousexpos, mouseypos)));
 				}
-				
 			}
-
-			if (button == GLFW_MOUSE_BUTTON_RIGHT)
-			{
-				cout << " (" << coords.x << " , " << coords.y << ")  ";
-				bitset<TILE_VALUES> x(textureVector[matrixToVecCoords(coords)]);
-				cout << x << endl;
-				//cout << possibleTiles((textureVector[matrixToVecCoords(coords)])).size() << endl;
-
-			}
-
-			updateScreenTex();
+			
 		}
+
+		if (button == GLFW_MOUSE_BUTTON_RIGHT)
+		{
+			cout << " (" << coords.x << " , " << coords.y << ")  ";
+			bitset<TILE_VALUES> x(textureVector[matrixToVecCoords(coords)]);
+			cout << x << endl;
+			//cout << possibleTiles((textureVector[matrixToVecCoords(coords)])).size() << endl;
+
+		}
+
+		updateScreenTex();
+		
 
 	}
 }

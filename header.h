@@ -1,7 +1,7 @@
 // TODO :
 // CHANGE TO MANUAL COLLAPSE CHOICE
 // MULTIPLE ITERATIONS IN COMPUTE NEXT
-// REMOVE TEXTUREVECTORS
+
 
 #include <iostream>
 #include <chrono>
@@ -22,20 +22,20 @@ using namespace std;
 using namespace std::chrono;
 using namespace glm;
 
+const unsigned short OPENGL_MAJOR_VERSION = 4;
+const unsigned short OPENGL_MINOR_VERSION = 6;
+
 const unsigned int SCREEN_WIDTH = 1024;
 const unsigned int SCREEN_HEIGHT = 1024;
 
-const unsigned int COMPUTE_WIDTH = 32;
-const unsigned int COMPUTE_HEIGHT = 32;
-
-const unsigned short OPENGL_MAJOR_VERSION = 4;
-const unsigned short OPENGL_MINOR_VERSION = 6;
+const unsigned int COMPUTE_WIDTH = 16;
+const unsigned int COMPUTE_HEIGHT = 16;
 
 const unsigned int MAXIMUM_ITERATIONS = 5000;
 const unsigned int MAXIMUM_RULES = 100;
 const unsigned int TILE_VALUES = 4;
 
-bool vSync = true;
+bool vSync = false;
 
 GLuint screenTex;
 GLuint computedTex;
@@ -60,10 +60,7 @@ GLint uLocationCoordinates;
 
 GLint currentIteration = 0;
 
-
-
 double mousexpos, mouseypos;
-bool clickingAllowed = true;
 
 vector<vector<vector<GLint>>> rules =
 {
@@ -73,7 +70,7 @@ vector<vector<vector<GLint>>> rules =
    {{0,1,0b0111} , {1,0,0b0111} , {0,-1,0b0111}, {-1,0,0b0111}},
 };
 
-// example for wrong rules
+// example for assymetric rules
 //vector<vector<vector<GLint>>> rules =
 //{
 //   {{0,1,0b0001}},

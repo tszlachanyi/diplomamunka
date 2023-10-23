@@ -78,15 +78,7 @@ int main()
 
 	// Load initial position
 
-	int v = pow(2, TILE_VALUES) - 1;
-
-	array <GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> arr;
-	for (int i = 0; i < COMPUTE_WIDTH * COMPUTE_HEIGHT; i++) {
-		arr[i] = v;
-	}
-
-	copyArray(arr, textureVector);
-	updateScreenTex();
+	initScreen();
 
 	// Main Loop
 
@@ -94,7 +86,6 @@ int main()
 	{
 		glfwGetCursorPos(window, &mousexpos, &mouseypos);
 		Render();
-
 	}
 
 
