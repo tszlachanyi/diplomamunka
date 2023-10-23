@@ -52,6 +52,7 @@ int main()
 	initTexture(&screenTex, 0, GL_WRITE_ONLY, GL_RGBA32F);
 	initTexture(&loadTex, 1, GL_READ_WRITE, GL_R32UI);
 	initTexture(&computedTex, 2, GL_READ_WRITE, GL_R32UI);
+	initTexture(&screenTexDivided, 3, GL_WRITE_ONLY, GL_RGBA32F, vec2(COMPUTE_WIDTH * cellDivision, COMPUTE_HEIGHT * cellDivision));
 
 	// Shaders
 	screenVertexShader = loadShader(GL_VERTEX_SHADER, "vertexShader.vert");
@@ -87,7 +88,6 @@ int main()
 		glfwGetCursorPos(window, &mousexpos, &mouseypos);
 		Render();
 	}
-
 
 	glfwDestroyWindow(window);
 	glfwTerminate();

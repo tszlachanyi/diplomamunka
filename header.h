@@ -35,11 +35,15 @@ const unsigned int MAXIMUM_ITERATIONS = 5000;
 const unsigned int MAXIMUM_RULES = 100;
 const unsigned int TILE_VALUES = 4;
 
+const bool divideCells = true;
+const unsigned int cellDivision = 2;
+
 bool vSync = false;
 
 GLuint screenTex;
 GLuint computedTex;
 GLuint loadTex;
+GLuint screenTexDivided;
 
 GLuint screenVertexShader;
 GLuint screenFragmentShader;

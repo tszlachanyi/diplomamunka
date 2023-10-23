@@ -4,13 +4,12 @@ uniform sampler2D screen;
 in vec2 UVs;
 void main()
 {
-	
 
 	int SCREEN_WIDTH = 1024;
     int SCREEN_HEIGHT = 1024;
     int COMPUTE_WIDTH = 16;
     int COMPUTE_HEIGHT = 16;
-    int thickness = 1;
+    int thickness = 2;
     int gap;
 
     FragColor = texture(screen, UVs);
@@ -34,6 +33,5 @@ void main()
        FragColor = vec4(0, 0, 0, 1.0);
        } 
     }
-
 
 }
