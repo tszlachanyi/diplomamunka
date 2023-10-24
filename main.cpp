@@ -50,8 +50,8 @@ int main()
 
 	// Textures
 	initTexture(&screenTex, 0, GL_WRITE_ONLY, GL_RGBA32F);
-	initTexture(&loadTex, 1, GL_READ_WRITE, GL_R32UI);
-	initTexture(&computedTex, 2, GL_READ_WRITE, GL_R32UI);
+	initTexture(&computeTex1, 1, GL_READ_WRITE, GL_R32UI);
+	initTexture(&computeTex2, 2, GL_READ_WRITE, GL_R32UI);
 	initTexture(&screenTexDivided, 3, GL_WRITE_ONLY, GL_RGBA32F, vec2(COMPUTE_WIDTH * CELL_DIVISION, COMPUTE_HEIGHT * CELL_DIVISION));
 
 	// Shaders

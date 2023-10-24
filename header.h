@@ -42,11 +42,13 @@ const unsigned int GRID_THICKNESS = 1;
 const bool DIVIDE_CELLS = false;
 const unsigned int CELL_DIVISION = 2;
 
+const bool RENDER_DURING_WFC = false;
+
 bool vSync = true;
 
 GLuint screenTex;
-GLuint computedTex;
-GLuint loadTex;
+GLuint computeTex2;
+GLuint computeTex1;
 GLuint screenTexDivided;
 
 GLuint screenVertexShader;

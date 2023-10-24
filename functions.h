@@ -56,31 +56,6 @@ void initTexture(GLuint* texture, int unitIndex, int access, int format, vec2 si
 	glBindImageTexture(unitIndex, *texture, 0, GL_FALSE, 0, access, format);
 }
 
-void Render()
-{
-	glUseProgram(screenShaderProgram);
-
-	//uniforms
-	glUniform1ui(uLocationGridThickness, GRID_THICKNESS);
-	glUniform4ui(uLocationScreenParams, SCREEN_WIDTH, SCREEN_HEIGHT, COMPUTE_WIDTH, COMPUTE_HEIGHT);
-
-	if (DIVIDE_CELLS)
-	{
-		glBindTextureUnit(0, screenTexDivided);
-	}
-	else
-	{
-		glBindTextureUnit(0, screenTex);
-	}
-	
-	glUniform1i(glGetUniformLocation(screenShaderProgram, "screen"), 0);
-	glBindVertexArray(VAO);
-	glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_INT, 0);
-
-	glfwSwapBuffers(window);
-	glfwPollEvents();
-}
-
 // Converts from screen coordinates to coordinates of the textures
 vec2 screenToTextureCoords(vec2 coords)
 {
@@ -326,6 +301,34 @@ void updateScreenTex()
 
 }
 
+void Render()
+{
+	updateScreenTex();
+
+	glUseProgram(screenShaderProgram);
+
+	//uniforms
+	glUniform1ui(uLocationGridThickness, GRID_THICKNESS);
+	glUniform4ui(uLocationScreenParams, SCREEN_WIDTH, SCREEN_HEIGHT, COMPUTE_WIDTH, COMPUTE_HEIGHT);
+
+	if (DIVIDE_CELLS)
+	{
+		glBindTextureUnit(0, screenTexDivided);
+	}
+	else
+	{
+		glBindTextureUnit(0, screenTex);
+	}
+
+	glUniform1i(glGetUniformLocation(screenShaderProgram, "screen"), 0);
+	glBindVertexArray(VAO);
+	glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_INT, 0);
+
+	glfwSwapBuffers(window);
+	glfwPollEvents();
+}
+
+
 // Initialize the screen with a blank texture
 void initScreen()
 {
@@ -338,10 +341,11 @@ void initScreen()
 
 	currentIteration = 0;
 	copyArray(arr, textureVector);
+	glTextureSubImage2D(computeTex1, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &textureVector);
 	updateScreenTex();
 }
 
-// Use compute shader to create computedTex from current loadTex
+// Use compute shader to create computeTex2 from current computeTex1
 void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = false)
 {
 	uint64_t startTime = getEpochTime();
@@ -381,8 +385,18 @@ void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = fa
 	GLint* flattenedRules = new int[v.size()];
 	copy(v.begin(), v.end(), flattenedRules);
 
-	// Load data from textureVector into loadTex
-	glTextureSubImage2D(loadTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &textureVector);
+	// Set input and output textures
+	if (currentIteration % 2 == 0)
+	{
+		glBindImageTexture(1, computeTex1, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+		glBindImageTexture(2, computeTex2, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+	}
+	else
+	{
+		glBindImageTexture(1, computeTex2, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+		glBindImageTexture(2, computeTex1, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+	}
+	
 
 	// Run compute shader
 	glUseProgram(computeProgram);
@@ -397,13 +411,16 @@ void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = fa
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 	// Save the new iteration
-	currentIteration++;
-	array <GLuint, COMPUTE_WIDTH * COMPUTE_HEIGHT> vector = getTextureVector(computedTex);
+	if (currentIteration % 2 == 0)
+	{
+		textureVector = getTextureVector(computeTex2);
+	}
+	else
+	{
+		textureVector = getTextureVector(computeTex1);
+	}
 	
-	copyArray(vector, textureVector);
-
-	// Render it
-	updateScreenTex();
+	currentIteration++;
 
 	// Print time
 	cout << "currentIteration : " << currentIteration << "   -   ";
@@ -472,7 +489,11 @@ void runWFC()
 	while (uncollapsed.size() != 0)
 	{
 		runOneIteration();
-		Render();
+		if (RENDER_DURING_WFC)
+		{
+			Render();
+		}
+			
 	}
 
 	////Test for run time
@@ -562,8 +583,6 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 			//cout << possibleTiles((textureVector[matrixToVecCoords(coords)])).size() << endl;
 
 		}
-
-		updateScreenTex();
 		
 
 	}
@@ -571,5 +590,5 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
-	updateScreenTex();
+	;
 }
