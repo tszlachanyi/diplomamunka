@@ -457,19 +457,41 @@ void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = fa
 	}
 }
 
+void runComputeEntropyProgram()
+{
+	// Set input and output textures
+	if (currentIteration % 2 == 0)
+	{
+		glBindImageTexture(1, computeTex1, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+		glBindImageTexture(2, computeTex2, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+	}
+	else
+	{
+		glBindImageTexture(1, computeTex2, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+		glBindImageTexture(2, computeTex1, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+	}
+	
+	// Run compute shader
+	glUseProgram(computeEntropyProgram);
+	
+	// Send uniform values to compute shader
+	glUniform1ui(glGetUniformLocation(computeEntropyProgram, "TILE_VALUES"), TILE_VALUES);
+	
+	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+	
+	// Save the new iteration
+	entropyVector = getTextureVector(entropyTex);
+}
+
 void runOneIteration()
 {
 	uint startTime = getEpochTime();
 
 	// Find entropy values
-	for (int i = 0; i < COMPUTE_WIDTH * COMPUTE_HEIGHT; i++)
-	{
-		GLuint cellValue = textureVector[i];
-		entropyVector[i] = possibleTiles(cellValue).size();
-	}
+	runComputeEntropyProgram();
 
 	// Find minimum entropy
-	
 	GLuint minEntropy = TILE_VALUES + 1;
 
 	for (int i = 0; i < COMPUTE_WIDTH * COMPUTE_HEIGHT; i++)
@@ -495,7 +517,6 @@ void runOneIteration()
 	if (minCoords.size() != 0)
 	{
 		// Choose random cell
-		
 		int r = rand() % minCoords.size();
 		vec2 chosenCoords = minCoords[r];
 

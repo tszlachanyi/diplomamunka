@@ -8,7 +8,6 @@ uniform ivec3 rules[100];
 uniform uint rulesAmount;
 uniform uint chosenValue;
 uniform uvec2 coordinates;
-uniform uint TILE_VALUES;
 
 void main()
 {

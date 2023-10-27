@@ -2,7 +2,7 @@
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout (binding = 1, r32ui) readonly uniform uimage2D inputImage;
-layout (binding = 2, r32ui) writeonly uniform uimage2D outputImage;
+layout (binding = 3, r32ui) writeonly uniform uimage2D outputImage;
 
 uniform uint TILE_VALUES;
 
