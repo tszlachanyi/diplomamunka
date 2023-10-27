@@ -56,6 +56,27 @@ void initTexture(GLuint* texture, int unitIndex, int access, int format, vec2 si
 	glBindImageTexture(unitIndex, *texture, 0, GL_FALSE, 0, access, format);
 }
 
+
+void initShaderProgram(vector<int> shaderTypes, vector<const char*> shaderNames, vector<GLuint*> shaders, GLuint* program)
+{
+	*program = glCreateProgram();
+	int n = shaders.size();
+
+	for (int i = 0; i < n; i++)
+	{
+		*shaders[i] = loadShader(shaderTypes[i], shaderNames[i]);
+		glAttachShader(*program, *shaders[i]);
+	}
+
+	glLinkProgram(*program);
+	
+	for (int i = 0; i < n; i++)
+	{
+		glDeleteShader(*shaders[i]);
+	}
+	
+}
+
 // Converts from screen coordinates to coordinates of the textures
 vec2 screenToTextureCoords(vec2 coords)
 {

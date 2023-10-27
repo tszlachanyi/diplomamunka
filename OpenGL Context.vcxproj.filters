@@ -43,5 +43,8 @@
     <None Include="computeShader.comp">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="computeEntropyShader.comp">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

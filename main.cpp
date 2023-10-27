@@ -2,8 +2,6 @@
 
 int main()
 {
-
-
 	// Initialization
 	srand(time(NULL));
 
@@ -32,6 +30,8 @@ int main()
 	}
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
+
+	// VAO, VBO, EBO
 	glCreateVertexArrays(1, &VAO);
 	glCreateBuffers(1, &VBO);
 	glCreateBuffers(1, &EBO);
@@ -54,23 +54,13 @@ int main()
 	initTexture(&screenTex, 0, GL_WRITE_ONLY, GL_RGBA32F);
 	initTexture(&computeTex1, 1, GL_READ_WRITE, GL_R32UI);
 	initTexture(&computeTex2, 2, GL_READ_WRITE, GL_R32UI);
-	initTexture(&screenTexDivided, 3, GL_WRITE_ONLY, GL_RGBA32F, vec2(COMPUTE_WIDTH * CELL_DIVISION, COMPUTE_HEIGHT * CELL_DIVISION));
+	initTexture(&computeEntropyTex, 3, GL_READ_WRITE, GL_R32UI);
+	initTexture(&screenTexDivided, 4, GL_WRITE_ONLY, GL_RGBA32F, vec2(COMPUTE_WIDTH * CELL_DIVISION, COMPUTE_HEIGHT * CELL_DIVISION));
 
-	// Shaders
-	screenVertexShader = loadShader(GL_VERTEX_SHADER, "vertexShader.vert");
-	screenFragmentShader = loadShader(GL_FRAGMENT_SHADER, "fragmentShader.frag");
-	computeShader = loadShader(GL_COMPUTE_SHADER, "computeShader.comp");
-
-	screenShaderProgram = glCreateProgram();
-	computeProgram = glCreateProgram();
-
-	glAttachShader(screenShaderProgram, screenVertexShader);
-	glAttachShader(screenShaderProgram, screenFragmentShader);
-	glAttachShader(computeProgram, computeShader);
-	glLinkProgram(screenShaderProgram);
-	glLinkProgram(computeProgram);
-	glDeleteShader(screenVertexShader);
-	glDeleteShader(screenFragmentShader);
+	// Shaders, programs
+	initShaderProgram({GL_COMPUTE_SHADER}, {"computeShader.comp"}, {&computeShader}, &computeProgram);
+	initShaderProgram({GL_COMPUTE_SHADER}, {"computeEntropyShader.comp"}, {&computeEntropyShader}, &computeEntropyProgram);
+	initShaderProgram({GL_VERTEX_SHADER , GL_FRAGMENT_SHADER}, {"vertexShader.vert","fragmentShader.frag"}, {&screenVertexShader,&screenFragmentShader }, &screenShaderProgram);
 
 	// Load initial position
 	initScreen();
@@ -85,3 +75,4 @@ int main()
 	glfwDestroyWindow(window);
 	glfwTerminate();
 }
+

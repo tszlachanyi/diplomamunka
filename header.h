@@ -30,8 +30,8 @@ const unsigned short OPENGL_MINOR_VERSION = 6;
 const unsigned int SCREEN_WIDTH = 1024;
 const unsigned int SCREEN_HEIGHT = 1024;
 
-const unsigned int COMPUTE_WIDTH = 64;
-const unsigned int COMPUTE_HEIGHT = 64;
+const unsigned int COMPUTE_WIDTH = 16;
+const unsigned int COMPUTE_HEIGHT = 16;
 
 const unsigned int MAXIMUM_ITERATIONS = 5000;
 const unsigned int MAXIMUM_RULES = 100;
@@ -42,18 +42,20 @@ const unsigned int GRID_THICKNESS = 1;
 const bool DIVIDE_CELLS = false;
 const unsigned int CELL_DIVISION = 2;
 
-const bool RENDER_DURING_WFC = false;
+const bool RENDER_DURING_WFC = true;
 
 bool vSync = true;
 
 GLuint screenTex;
 GLuint computeTex2;
 GLuint computeTex1;
+GLuint computeEntropyTex;
 GLuint screenTexDivided;
 
 GLuint screenVertexShader;
 GLuint screenFragmentShader;
 GLuint computeShader;
+GLuint computeEntropyShader;
 
 array<GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> textureVector;
 array<GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> entropyVector;
@@ -61,6 +63,7 @@ vector<vec2> uncollapsed;
 
 GLuint screenShaderProgram;
 GLuint computeProgram;
+GLuint computeEntropyProgram;
 GLuint VAO, VBO, EBO;
 GLFWwindow* window;
 
