@@ -59,8 +59,8 @@ void initTexture(GLuint* texture, int unitIndex, int access, int format, vec2 si
 // Converts from screen coordinates to coordinates of the textures
 vec2 screenToTextureCoords(vec2 coords)
 {
-	float xRatio = SCREEN_WIDTH / COMPUTE_WIDTH;
-	float yRatio = SCREEN_HEIGHT / COMPUTE_HEIGHT;
+	float xRatio = float(SCREEN_WIDTH) / float(COMPUTE_WIDTH);
+	float yRatio = float(SCREEN_HEIGHT) / float(COMPUTE_HEIGHT);
 
 	int x = int(floor(coords.x / xRatio));
 	int y = (COMPUTE_HEIGHT - 1) - int(floor(coords.y / yRatio));
@@ -71,8 +71,8 @@ vec2 screenToTextureCoords(vec2 coords)
 // Converts from screen coordinates to coordinates of the divided texture
 vec2 screenToDividedTextureCoords(vec2 coords)
 {
-	float xRatio = SCREEN_WIDTH / COMPUTE_WIDTH / CELL_DIVISION;
-	float yRatio = SCREEN_HEIGHT / COMPUTE_HEIGHT / CELL_DIVISION;
+	float xRatio = float(SCREEN_WIDTH) / float(COMPUTE_WIDTH) / float(CELL_DIVISION);
+	float yRatio = float(SCREEN_HEIGHT) / float(COMPUTE_HEIGHT) / float(CELL_DIVISION);
 
 	int x = int(floor(coords.x / xRatio));
 	int y = (COMPUTE_HEIGHT * CELL_DIVISION - 1) - int(floor(coords.y / yRatio));
@@ -149,19 +149,18 @@ vector<GLuint> possibleTiles(GLuint number)
 	return v;
 }
 
-// Get the coordinates of all uncollapsed cells
-vector<vec2> uncollapsedCells()
+// Get the amount of uncollapsed cells
+GLuint uncollapsedAmount()
 {
-	vector<vec2> tiles;
+	GLuint n = 0;
 	for (int i = 0; i < COMPUTE_HEIGHT * COMPUTE_WIDTH; i++)
 	{	
-		GLuint entropy = possibleTiles(textureVector[i]).size();
-		if (entropy > 1)
+		if (entropyVector[i] > 1)
 		{
-			tiles.push_back(vecToMatrixCoords(i));
+			n++;
 		}
 	}
-	return tiles;
+	return n;
 }
 
 // Get which tile the 2bit value corresponds to (assuming there is only one possible value)
@@ -211,15 +210,18 @@ vec4 getTileColor(GLuint number)
 }
 
 // Get vector format of a GL_R32UI texture
-array <GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> getTextureVector(GLuint texture)
+array <GLuint, COMPUTE_WIDTH * COMPUTE_HEIGHT> getTextureVector(GLuint texture)
 {
-	array <GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> textureVector;
-	//GLuint textureVector[COMPUTE_WIDTH * COMPUTE_HEIGHT];
+	uint startTime = getEpochTime();
+	array <GLuint, COMPUTE_WIDTH * COMPUTE_HEIGHT> vector;
 
 	glBindTexture(GL_TEXTURE_2D, texture);
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &textureVector);
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &vector);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	return textureVector;
+
+	uint endTime = getEpochTime();
+	cout << "elapsed time for getting texture vector :  " << endTime - startTime << " ms" << endl;
+	return vector;
 }
 
 // Get the value for screenTex from textureVector
@@ -245,7 +247,7 @@ void updateScreenTex()
 		}
 
 		// Effect for hovering on cells
-		if (mousexpos >= 0 && mouseypos >= 0 && mousexpos < SCREEN_WIDTH && mouseypos < SCREEN_HEIGHT)
+		if (mouseCoords.x >= 0 && mouseCoords.y >= 0 && mouseCoords.x < COMPUTE_WIDTH && mouseCoords.y < COMPUTE_HEIGHT)
 		{
 			for (int j = 0; j <= 3; j++)
 			{
@@ -307,10 +309,6 @@ void Render()
 
 	glUseProgram(screenShaderProgram);
 
-	//uniforms
-	glUniform1ui(uLocationGridThickness, GRID_THICKNESS);
-	glUniform4ui(uLocationScreenParams, SCREEN_WIDTH, SCREEN_HEIGHT, COMPUTE_WIDTH, COMPUTE_HEIGHT);
-
 	if (DIVIDE_CELLS)
 	{
 		glBindTextureUnit(0, screenTexDivided);
@@ -320,6 +318,8 @@ void Render()
 		glBindTextureUnit(0, screenTex);
 	}
 
+	glUniform1ui(glGetUniformLocation(screenShaderProgram, "gridThickness"), GRID_THICKNESS);
+	glUniform4ui(glGetUniformLocation(screenShaderProgram, "screenParams"), SCREEN_WIDTH, SCREEN_HEIGHT, COMPUTE_WIDTH, COMPUTE_HEIGHT);
 	glUniform1i(glGetUniformLocation(screenShaderProgram, "screen"), 0);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_INT, 0);
@@ -348,7 +348,7 @@ void initScreen()
 // Use compute shader to create computeTex2 from current computeTex1
 void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = false)
 {
-	uint64_t startTime = getEpochTime();
+	uint startTime = getEpochTime();
 	GLuint currentValue = textureVector[matrixToVecCoords(coordinates)];
 	vector<vec2> collapsedTiles;
 
@@ -397,15 +397,16 @@ void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = fa
 		glBindImageTexture(2, computeTex1, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 	}
 	
-
 	// Run compute shader
 	glUseProgram(computeProgram);
 
 	// Send uniform values to compute shader
-	glUniform3iv(uLocationRules, MAXIMUM_RULES, flattenedRules);
-	glUniform1ui(uLocationRulesAmount, GLuint(v.size() / 3));
-	glUniform1ui(uLocationChosenValue, chosenValue);
-	glUniform2ui(uLocationCoordinates, coordinates.x, coordinates.y);
+	//float r = fract(sin(startTime) * 43758.5453); // random value between 0 and 1
+
+	glUniform3iv(glGetUniformLocation(computeProgram, "rules"), MAXIMUM_RULES, flattenedRules);
+	glUniform1ui(glGetUniformLocation(computeProgram, "rulesAmount"), GLuint(v.size() / 3));
+	glUniform1ui(glGetUniformLocation(computeProgram, "chosenValue"), chosenValue);
+	glUniform2ui(glGetUniformLocation(computeProgram, "coordinates"), coordinates.x, coordinates.y);
 
 	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
@@ -423,10 +424,9 @@ void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = fa
 	currentIteration++;
 
 	// Print time
-	cout << "currentIteration : " << currentIteration << "   -   ";
+	uint endTime = getEpochTime();
+	cout << "currentIteration : " << currentIteration << "   -   " << "elapsed time : " << endTime - startTime << " ms" << endl;
 	delete[] flattenedRules;
-	uint64_t endTime = getEpochTime();
-	cout << "elapsed time : " << endTime - startTime << " ms" << endl;
 
 	// New iteration if collapsed a tile
 	for (int i = 0; i < collapsedTiles.size(); i++)
@@ -438,32 +438,36 @@ void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = fa
 
 void runOneIteration()
 {
+	uint startTime = getEpochTime();
+
+	// Find entropy values
+	for (int i = 0; i < COMPUTE_WIDTH * COMPUTE_HEIGHT; i++)
+	{
+		GLuint cellValue = textureVector[i];
+		entropyVector[i] = possibleTiles(cellValue).size();
+	}
+
 	// Find minimum entropy
-	uncollapsed = uncollapsedCells();
+	
 	GLuint minEntropy = TILE_VALUES + 1;
 
-	for (int i = 0; i < uncollapsed.size(); i++)
+	for (int i = 0; i < COMPUTE_WIDTH * COMPUTE_HEIGHT; i++)
 	{
-		vec2 coords = uncollapsed[i];
-		GLuint cellValue = textureVector[matrixToVecCoords(coords)];
-		GLuint entropy = possibleTiles(cellValue).size();
-
-		if (minEntropy > entropy)
+		if (minEntropy > entropyVector[i] && entropyVector[i] > 1)
 		{
-			minEntropy = entropy;
+			minEntropy = entropyVector[i];
 		}
 	}
 
 	// Get all cells with minimum entropy, and randomly choose one
 	vector<vec2> minCoords;
-	for (int i = 0; i < uncollapsed.size(); i++)
+	for (int i = 0; i < COMPUTE_WIDTH * COMPUTE_HEIGHT; i++)
 	{
-		vec2 coords = uncollapsed[i];
-		GLuint cellValue = textureVector[matrixToVecCoords(coords)];
-		GLuint entropy = possibleTiles(cellValue).size();
+		GLuint cellValue = textureVector[i];
+		GLuint entropy = entropyVector[i];
 		if (entropy == minEntropy)
 		{
-			minCoords.push_back(coords);
+			minCoords.push_back(vecToMatrixCoords(i));
 		}
 	}
 
@@ -474,6 +478,9 @@ void runOneIteration()
 		int r = rand() % minCoords.size();
 		vec2 chosenCoords = minCoords[r];
 
+		uint endTime = getEpochTime();
+		cout << "elapsed time for choosing cell : " << endTime - startTime << " ms" << endl;
+
 		// Collapse cell
 		computeNext(chosenCoords);
 	}
@@ -483,15 +490,20 @@ void runWFC()
 {
 	uint64_t startTime = getEpochTime();
 	
-	uncollapsed = uncollapsedCells();
+	
 	
 	// Repeat until all cells are collapsed
-	while (uncollapsed.size() != 0)
+	while (true)
 	{
 		runOneIteration();
 		if (RENDER_DURING_WFC)
 		{
 			Render();
+		}
+
+		if (uncollapsedAmount() == 0)
+		{
+			break;
 		}
 			
 	}
@@ -502,7 +514,7 @@ void runWFC()
 	//	for (int j = 0; j < COMPUTE_HEIGHT; j++)
 	//	{
 	//		computeNext(vec2(i, j));
-	//		Render();
+	//		//Render();
 	//	}
 	//	
 	//}

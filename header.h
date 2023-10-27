@@ -1,5 +1,5 @@
 // TODO :
-// Ui
+// Find entropy values on GPU
 
 
 #include <iostream>
@@ -30,8 +30,8 @@ const unsigned short OPENGL_MINOR_VERSION = 6;
 const unsigned int SCREEN_WIDTH = 1024;
 const unsigned int SCREEN_HEIGHT = 1024;
 
-const unsigned int COMPUTE_WIDTH = 16;
-const unsigned int COMPUTE_HEIGHT = 16;
+const unsigned int COMPUTE_WIDTH = 64;
+const unsigned int COMPUTE_HEIGHT = 64;
 
 const unsigned int MAXIMUM_ITERATIONS = 5000;
 const unsigned int MAXIMUM_RULES = 100;
@@ -56,20 +56,13 @@ GLuint screenFragmentShader;
 GLuint computeShader;
 
 array<GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> textureVector;
+array<GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> entropyVector;
 vector<vec2> uncollapsed;
 
 GLuint screenShaderProgram;
 GLuint computeProgram;
 GLuint VAO, VBO, EBO;
 GLFWwindow* window;
-
-GLint uLocationRules;
-GLint uLocationRulesAmount;
-GLint uLocationChosenValue;
-GLint uLocationCoordinates;
-GLint uLocationScreenParams;
-GLint uLocationGridThickness;
-
 
 GLint currentIteration = 0;
 

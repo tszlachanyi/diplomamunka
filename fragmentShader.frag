@@ -13,12 +13,12 @@ void main()
     uint SCREEN_HEIGHT = screenParams[1];
     uint COMPUTE_WIDTH = screenParams[2];
     uint COMPUTE_HEIGHT = screenParams[3];
-    int gap;
+    float gap;
 
     FragColor = texture(screen, UVs);
 
     // Vertical Grid
-    gap = int(floor(SCREEN_WIDTH/COMPUTE_WIDTH));
+    gap = float(SCREEN_WIDTH) / float(COMPUTE_WIDTH);
     for (int i = 0; i < COMPUTE_WIDTH; i++)
     {
        if (gl_FragCoord.x > gap * i - gridThickness && gl_FragCoord.x < gap * i + gridThickness) 
@@ -28,7 +28,7 @@ void main()
     }
 
     // Horizontal Grid
-    gap = int(floor(SCREEN_HEIGHT/COMPUTE_HEIGHT));
+    gap = float(SCREEN_WIDTH) / float(COMPUTE_WIDTH);
     for (int i = 0; i < COMPUTE_HEIGHT; i++)
     {
        if (gl_FragCoord.y > gap * i - gridThickness && gl_FragCoord.y < gap * i + gridThickness) 

@@ -2,6 +2,8 @@
 
 int main()
 {
+
+
 	// Initialization
 	srand(time(NULL));
 
@@ -70,22 +72,10 @@ int main()
 	glDeleteShader(screenVertexShader);
 	glDeleteShader(screenFragmentShader);
 
-	// Uniforms for compute shader
-	uLocationRules = glGetUniformLocation(computeProgram, "rules");
-	uLocationRulesAmount = glGetUniformLocation(computeProgram, "rulesAmount");
-	uLocationChosenValue = glGetUniformLocation(computeProgram, "chosenValue");
-	uLocationCoordinates = glGetUniformLocation(computeProgram, "coordinates");
-
-	uLocationScreenParams = glGetUniformLocation(screenShaderProgram, "screenParams");
-	uLocationGridThickness = glGetUniformLocation(screenShaderProgram, "gridThickness");
-
-
 	// Load initial position
-
 	initScreen();
 
 	// Main Loop
-
 	while (!glfwWindowShouldClose(window))
 	{
 		glfwGetCursorPos(window, &mousexpos, &mouseypos);
