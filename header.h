@@ -19,8 +19,6 @@
 #include "GLFW/glfw3.h"
 #include "glm/glm.hpp"
 
-
-
 using namespace std;
 using namespace std::chrono;
 using namespace glm;
@@ -31,27 +29,24 @@ const unsigned short OPENGL_MINOR_VERSION = 6;
 const unsigned int SCREEN_WIDTH = 1024;
 const unsigned int SCREEN_HEIGHT = 1024;
 
-const unsigned int COMPUTE_WIDTH = 64;
-const unsigned int COMPUTE_HEIGHT = 64;
+const unsigned int COMPUTE_WIDTH = 16;
+const unsigned int COMPUTE_HEIGHT = 16;
 
-const unsigned int MAXIMUM_ITERATIONS = 5000;
 const unsigned int MAXIMUM_RULES = 100;
 const unsigned int TILE_VALUES = 4;
 
-const unsigned int GRID_THICKNESS = 1;
+const unsigned int GRID_THICKNESS = 2;
 
-const bool DIVIDE_CELLS = false;
+const bool DIVIDE_CELLS = true;
 const unsigned int CELL_DIVISION = 2;
 
-const bool RENDER_DURING_WFC = false;
+const bool RENDER_DURING_WFC = true;
 
-bool vSync = true;
+bool vSync = false;
 
-GLuint screenTex;
 GLuint computeTex2;
 GLuint computeTex1;
 GLuint entropyTex;
-GLuint screenTexDivided;
 
 GLuint screenVertexShader;
 GLuint screenFragmentShader;
@@ -183,3 +178,7 @@ GLuint loadShader(GLenum _shaderType, const char* _fileName)
 
 	return loadedShader;
 }
+
+
+//entropy kiszámolás - tile választás - érték választás - szabályok alkalmazása szomszédokra
+//	gpu						cpu				 cpu						gpu

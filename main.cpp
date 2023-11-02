@@ -26,7 +26,7 @@ int main()
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
-		std::cout << "Failed to initialize OpenGL context" << std::endl;
+		cout << "Failed to initialize OpenGL context" << endl;
 	}
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
@@ -51,11 +51,9 @@ int main()
 	glVertexArrayElementBuffer(VAO, EBO);
 
 	// Textures
-	initTexture(&screenTex, 0, GL_WRITE_ONLY, GL_RGBA32F);
 	initTexture(&computeTex1, 1, GL_READ_WRITE, GL_R32UI);
 	initTexture(&computeTex2, 2, GL_READ_WRITE, GL_R32UI);
-	initTexture(&entropyTex, 3, GL_READ_WRITE, GL_R32UI);
-	initTexture(&screenTexDivided, 4, GL_WRITE_ONLY, GL_RGBA32F, vec2(COMPUTE_WIDTH * CELL_DIVISION, COMPUTE_HEIGHT * CELL_DIVISION));
+	initTexture(&entropyTex, 3, GL_WRITE_ONLY, GL_R32UI);
 
 	// Shaders, programs
 	initShaderProgram({GL_COMPUTE_SHADER}, {"computeShader.comp"}, {&computeShader}, &computeProgram);

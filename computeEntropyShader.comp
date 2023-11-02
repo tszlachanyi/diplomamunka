@@ -11,19 +11,29 @@ uint nthBit(uint number, uint n)
 	return (number >> n) & 1;
 }
 
-void main()
+bool tilePossible(uint number, uint i)
 {
-	ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
-	uint value = imageLoad(inputImage, pixelCoords)[0];
+	return (nthBit(number, i) == 1);
+}
 
+uint entropy(uint number)
+{
 	uint entropy = 0;
 	for (int i = 0; i < TILE_VALUES; i++)
 	{
-		if (nthBit(value, i) == 1)
+		if (tilePossible(number, i))
 		{
 			entropy ++;
 		}
 	}
 
-	imageStore(outputImage, pixelCoords, uvec4(entropy, 0u, 0u, 0u));
+	return entropy;
+}
+
+void main()
+{
+	ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
+	uint value = imageLoad(inputImage, pixelCoords)[0];
+
+	imageStore(outputImage, pixelCoords, uvec4(entropy(value), 0u, 0u, 0u));
 }

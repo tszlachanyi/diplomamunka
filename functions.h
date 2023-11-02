@@ -202,34 +202,6 @@ int tileValue(GLuint number)
 	return n;
 }
 
-// Gets the color of the cell based on it's GLuint value
-vec4 getTileColor(GLuint number)
-{
-	vec4 color;
-
-	switch (number) {
-	case 0b0001:
-		color = vec4(1, 0, 0, 1);
-		break;
-	case 0b0010:
-		color = vec4(0, 1, 0, 1);
-		break;
-	case 0b0100:
-		color = vec4(0, 0, 1, 1);
-		break;
-	case 0b1000:
-		color = vec4(1, 1, 0, 1);
-		break;
-	case 0b0000:
-		color = vec4(0, 0, 0, 1);
-		break;
-	default:
-		color = vec4(1, 1, 1, 1);
-	}
-
-	return color;
-}
-
 // Get vector format of a GL_R32UI texture
 array <GLuint, COMPUTE_WIDTH * COMPUTE_HEIGHT> getTextureVector(GLuint texture)
 {
@@ -245,110 +217,31 @@ array <GLuint, COMPUTE_WIDTH * COMPUTE_HEIGHT> getTextureVector(GLuint texture)
 	return vector;
 }
 
-// Get the value for screenTex from textureVector
-void updateScreenTex()
-{
-	vec2 mouseCoords = screenToTextureCoords(vec2(mousexpos, mouseypos));
-
-	if (DIVIDE_CELLS == false)
-	{
-		GLfloat rgbaVector[4 * COMPUTE_WIDTH * COMPUTE_HEIGHT];
-
-
-		// Get colors for the screen from the textureVectors array
-		for (int j = 0; j < COMPUTE_WIDTH * COMPUTE_HEIGHT; j++)
-		{
-			vec4 tileColor = getTileColor(textureVector[j]);
-
-
-			for (int i = 0; i <= 3; i++)
-			{
-				rgbaVector[4 * j + i] = tileColor[i];
-			}
-		}
-
-		// Effect for hovering on cells
-		if (mouseCoords.x >= 0 && mouseCoords.y >= 0 && mouseCoords.x < COMPUTE_WIDTH && mouseCoords.y < COMPUTE_HEIGHT)
-		{
-			for (int j = 0; j <= 3; j++)
-			{
-				GLfloat* color = &rgbaVector[int(mouseCoords.x) * 4 + int(mouseCoords.y) * COMPUTE_WIDTH * 4 + j];
-				*color = *color * 0.5 + 0.25;
-			}
-		}
-
-
-		// Set the colors for screenTex
-		glTextureSubImage2D(screenTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RGBA, GL_FLOAT, rgbaVector);
-	}
-	else
-	{
-		GLfloat rgbaVector[4 * COMPUTE_WIDTH * COMPUTE_HEIGHT * CELL_DIVISION * CELL_DIVISION];
-
-		// Get colors for the screen from the textureVectors array
-		for (int j = 0; j < COMPUTE_HEIGHT * CELL_DIVISION; j++)
-		{
-			for (int i = 0; i < COMPUTE_WIDTH * CELL_DIVISION; i++)
-			{
-				vec4 tileColor;
-				vec2 cellCoords = vec2(floor(i / CELL_DIVISION) , floor(j / CELL_DIVISION));
-				vec2 tileCoords = vec2(i,j) - vec2(cellCoords.x * CELL_DIVISION, cellCoords.y * CELL_DIVISION);
-				int tileNumber = tileCoords.x + tileCoords.y * CELL_DIVISION;
-				GLuint cellValue = textureVector[matrixToVecCoords(cellCoords)];
-				//cout << cellCoords.x << " , " << cellCoords.y << "     " << tileNumber << endl;
-
-				
-				if (possibleTiles(cellValue).size() > 1) // If cell not collapsed yet, display all possible tiles
-				{
-					int tileValue = pow(2, tileNumber);
-					tileColor = getTileColor(tileValue & cellValue);
-					tileColor = tileColor * vec4(0.8, 0.8, 0.8, 1);
-				}
-				else // If cell already collapsed, only display the tile value it got
-				{
-					tileColor = getTileColor(cellValue);
-				}
-				
-
-				for (int k = 0; k <= 3; k++)
-				{
-					rgbaVector[4 * (COMPUTE_HEIGHT * CELL_DIVISION * j + i) + k] = tileColor[k];
-				}
-			}
-		}
-
-		glTextureSubImage2D(screenTexDivided, 0, 0, 0, COMPUTE_WIDTH * CELL_DIVISION, COMPUTE_HEIGHT * CELL_DIVISION, GL_RGBA, GL_FLOAT, rgbaVector);
-	}
-
-
-
-}
-
 void Render()
 {
-	updateScreenTex();
-
 	glUseProgram(screenShaderProgram);
 
-	if (DIVIDE_CELLS)
+	if (currentIteration % 2 == 0)
 	{
-		glBindTextureUnit(0, screenTexDivided);
+		glBindImageTexture(1, computeTex1, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 	}
 	else
 	{
-		glBindTextureUnit(0, screenTex);
+		glBindImageTexture(1, computeTex2, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 	}
 
 	glUniform1ui(glGetUniformLocation(screenShaderProgram, "gridThickness"), GRID_THICKNESS);
 	glUniform4ui(glGetUniformLocation(screenShaderProgram, "screenParams"), SCREEN_WIDTH, SCREEN_HEIGHT, COMPUTE_WIDTH, COMPUTE_HEIGHT);
-	glUniform1i(glGetUniformLocation(screenShaderProgram, "screen"), 0);
+	glUniform2ui(glGetUniformLocation(screenShaderProgram, "mouseCoords"), uint(mousexpos), uint(mouseypos));
+	glUniform1ui(glGetUniformLocation(screenShaderProgram, "DIVIDE_CELLS"), DIVIDE_CELLS);
+	glUniform1ui(glGetUniformLocation(screenShaderProgram, "CELL_DIVISION"), CELL_DIVISION);
+	glUniform1ui(glGetUniformLocation(screenShaderProgram, "TILE_VALUES"), TILE_VALUES);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_INT, 0);
 
 	glfwSwapBuffers(window);
 	glfwPollEvents();
 }
-
 
 // Initialize the screen with a blank texture
 void initScreen()
@@ -363,7 +256,6 @@ void initScreen()
 	currentIteration = 0;
 	copyArray(arr, textureVector);
 	glTextureSubImage2D(computeTex1, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &textureVector);
-	updateScreenTex();
 }
 
 // Use compute shader to create computeTex2 from current computeTex1
@@ -532,15 +424,16 @@ void runWFC()
 {
 	uint64_t startTime = getEpochTime();
 	
-	
-	
 	// Repeat until all cells are collapsed
 	while (true)
 	{
 		runOneIteration();
 		if (RENDER_DURING_WFC)
 		{
+			uint startTime = getEpochTime();
 			Render();
+			uint endTime = getEpochTime();
+			cout << "elapsed time for rendering : " << endTime - startTime << " ms" << endl;
 		}
 
 		if (uncollapsedAmount() == 0)
@@ -615,7 +508,6 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 					{
 						GLuint tileNumber = getTileValueInDividedGrid(mouseCoords);
 						vector<GLuint> v = possibleTiles(currentValue);
-						printVector(v);
 						if (find(v.begin(), v.end(), tileNumber) != v.end()) // If the chosen value is still a possible value for the cell, chose it 
 						{
 							GLuint tileValue = pow(2, tileNumber);
