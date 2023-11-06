@@ -51,13 +51,9 @@ int main()
 	glVertexArrayElementBuffer(VAO, EBO);
 
 	// Textures
-	initTexture(&computeTex1, 1, GL_READ_WRITE, GL_R32UI);
-	initTexture(&computeTex2, 2, GL_READ_WRITE, GL_R32UI);
-	initTexture(&entropyTex, 3, GL_WRITE_ONLY, GL_R32UI);
+	initTexture(&screenTex, 1, GL_READ_WRITE, GL_R32UI);
 
 	// Shaders, programs
-	initShaderProgram({GL_COMPUTE_SHADER}, {"computeShader.comp"}, {&computeShader}, &computeProgram);
-	initShaderProgram({GL_COMPUTE_SHADER}, {"computeEntropyShader.comp"}, {&computeEntropyShader}, &computeEntropyProgram);
 	initShaderProgram({GL_VERTEX_SHADER , GL_FRAGMENT_SHADER}, {"vertexShader.vert","fragmentShader.frag"}, {&screenVertexShader,&screenFragmentShader }, &screenShaderProgram);
 
 	// Load initial position

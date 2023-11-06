@@ -189,33 +189,28 @@ int tileValue(GLuint number)
 	return n;
 }
 
-// Get vector format of a GL_R32UI texture
-array <GLuint, COMPUTE_WIDTH * COMPUTE_HEIGHT> getTextureVector(GLuint texture)
+void updateScreenTex()
 {
-	uint startTime = getEpochTime();
-	array <GLuint, COMPUTE_WIDTH * COMPUTE_HEIGHT> vector;
+	glTextureSubImage2D(screenTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &textureVector);
+}
 
-	glBindTexture(GL_TEXTURE_2D, texture);
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &vector);
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-	uint endTime = getEpochTime();
-	cout << "elapsed time for getting texture vector :  " << endTime - startTime << " ms" << endl;
-	return vector;
+void updateTextureVector()
+{
+	for (int i = 0; i < COMPUTE_WIDTH; i++)
+	{
+		for (int j = 0; j < COMPUTE_HEIGHT; j++)
+		{
+			textureVector[i + COMPUTE_WIDTH * j] = grid[i][j];
+		}
+	}
 }
 
 void Render()
 {
+	updateScreenTex();
 	glUseProgram(screenShaderProgram);
 
-	if (currentIteration % 2 == 0)
-	{
-		glBindImageTexture(1, computeTex1, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-	}
-	else
-	{
-		glBindImageTexture(1, computeTex2, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-	}
+	glBindImageTexture(1, screenTex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 
 	glUniform1ui(glGetUniformLocation(screenShaderProgram, "gridThickness"), GRID_THICKNESS);
 	glUniform4ui(glGetUniformLocation(screenShaderProgram, "screenParams"), SCREEN_WIDTH, SCREEN_HEIGHT, COMPUTE_WIDTH, COMPUTE_HEIGHT);
@@ -230,22 +225,29 @@ void Render()
 	glfwPollEvents();
 }
 
+
+
 // Initialize the screen with a blank texture
 void initScreen()
 {
 	int v = pow(2, TILE_VALUES) - 1;
 
-	array <GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> arr;
-	for (int i = 0; i < COMPUTE_WIDTH * COMPUTE_HEIGHT; i++) {
-		arr[i] = v;
+	for (int i = 0; i < COMPUTE_WIDTH; i++)
+	{
+		for (int j = 0; j < COMPUTE_HEIGHT; j++)
+		{
+			grid[i][j] = v;
+		}
 	}
 
 	currentIteration = 0;
-	copyArray(arr, textureVector);
-	glTextureSubImage2D(computeTex1, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &textureVector);
+	updateTextureVector();
+	updateScreenTex();
 }
 
-// Use compute shader to create computeTex2 from current computeTex1
+
+
+// Use compute shader to create screenTex2 from current screenTex1
 void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = false)
 {
 	uint startTime = getEpochTime();
@@ -280,53 +282,40 @@ void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = fa
 
 	}
 
-	// Converting rules into required format
-	vector<GLint> v = flatten(rules[tile]);
-	GLint* flattenedRules = new int[v.size()];
-	copy(v.begin(), v.end(), flattenedRules);
-
-	// Set input and output textures
-	if (currentIteration % 2 == 0)
+	// Deep copy the values from grid to previousGrid
+	for (int i = 0; i < COMPUTE_WIDTH; i++)
 	{
-		glBindImageTexture(1, computeTex1, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-		glBindImageTexture(2, computeTex2, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+		for (int j = 0; j < COMPUTE_HEIGHT; j++)
+		{
+			previousGrid[i][j] = grid[i][j];
+		}
 	}
-	else
+
+	// Compute new grid values
+	grid[coordinates.x][coordinates.y] = chosenValue;
+
+	for (int i = 0; i < COMPUTE_WIDTH; i++)
 	{
-		glBindImageTexture(1, computeTex2, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-		glBindImageTexture(2, computeTex1, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+		for (int j = 0; j < COMPUTE_HEIGHT; j++)
+		{
+			for (int rule = 0; rule < rules[tile].size(); rule++)
+			{
+				if (vec2(i, j) == coordinates + vec2(rules[tile][rule][0], rules[tile][rule][1]))
+				{
+					//cout << i << "  " << j << endl;
+					grid[i][j] = previousGrid[i][j] & rules[tile][rule][2];
+				}
+			}
+		}
 	}
-	
-	// Run compute shader
-	glUseProgram(computeProgram);
 
-	// Send uniform values to compute shader
-	//float r = fract(sin(startTime) * 43758.5453); // random value between 0 and 1
-
-	glUniform3iv(glGetUniformLocation(computeProgram, "rules"), MAXIMUM_RULES, flattenedRules);
-	glUniform1ui(glGetUniformLocation(computeProgram, "rulesAmount"), GLuint(v.size() / 3));
-	glUniform1ui(glGetUniformLocation(computeProgram, "chosenValue"), chosenValue);
-	glUniform2ui(glGetUniformLocation(computeProgram, "coordinates"), coordinates.x, coordinates.y);
-
-	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
-	glMemoryBarrier(GL_ALL_BARRIER_BITS);
-
-	// Save the new iteration
-	if (currentIteration % 2 == 0)
-	{
-		textureVector = getTextureVector(computeTex2);
-	}
-	else
-	{
-		textureVector = getTextureVector(computeTex1);
-	}
-	
 	currentIteration++;
+
+	updateTextureVector();
 
 	// Print time
 	uint endTime = getEpochTime();
 	cout << "currentIteration : " << currentIteration << "   -   " << "elapsed time : " << endTime - startTime << " ms" << endl;
-	delete[] flattenedRules;
 
 	// New iteration if collapsed a tile
 	for (int i = 0; i < collapsedTiles.size(); i++)
@@ -336,39 +325,16 @@ void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = fa
 	}
 }
 
-void runComputeEntropyProgram()
-{
-	// Set input and output textures
-	if (currentIteration % 2 == 0)
-	{
-		glBindImageTexture(1, computeTex1, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-		glBindImageTexture(2, computeTex2, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-	}
-	else
-	{
-		glBindImageTexture(1, computeTex2, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-		glBindImageTexture(2, computeTex1, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-	}
-	
-	// Run compute shader
-	glUseProgram(computeEntropyProgram);
-	
-	// Send uniform values to compute shader
-	glUniform1ui(glGetUniformLocation(computeEntropyProgram, "TILE_VALUES"), TILE_VALUES);
-	
-	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
-	glMemoryBarrier(GL_ALL_BARRIER_BITS);
-	
-	// Save the new iteration
-	entropyVector = getTextureVector(entropyTex);
-}
-
 void runOneIteration()
 {
 	uint startTime = getEpochTime();
 
 	// Find entropy values
-	runComputeEntropyProgram();
+	for (int i = 0; i < COMPUTE_WIDTH * COMPUTE_HEIGHT; i++)
+	{
+		GLuint cellValue = textureVector[i];
+		entropyVector[i] = possibleTiles(cellValue).size();
+	}
 
 	// Find minimum entropy
 	GLuint minEntropy = TILE_VALUES + 1;
@@ -524,7 +490,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
-	vec2 coords = convertCoords(vec2(mousexpos, mouseypos), vec2(SCREEN_WIDTH, SCREEN_HEIGHT), vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT));
-	cout << coords.x << " , " << coords.y << endl;
+	//vec2 coords = convertCoords(vec2(mousexpos, mouseypos), vec2(SCREEN_WIDTH, SCREEN_HEIGHT), vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT));
+	//cout << coords.x << " , " << coords.y << endl;
 	;
 }

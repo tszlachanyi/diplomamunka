@@ -1,5 +1,4 @@
 // TODO :
-// test
 
 #include <iostream>
 #include <chrono>
@@ -42,15 +41,15 @@ const bool RENDER_DURING_WFC = true;
 
 bool vSync = false;
 
-GLuint computeTex2;
-GLuint computeTex1;
-GLuint entropyTex;
+array<array<GLuint, COMPUTE_HEIGHT>, COMPUTE_WIDTH> grid;
+array<array<GLuint, COMPUTE_HEIGHT>, COMPUTE_WIDTH> previousGrid;
 
 GLuint screenVertexShader;
 GLuint screenFragmentShader;
 GLuint computeShader;
 GLuint computeEntropyShader;
 
+GLuint screenTex;
 array<GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> textureVector;
 array<GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> entropyVector;
 vector<vec2> uncollapsed;
