@@ -67,6 +67,7 @@ int main()
 	while (!glfwWindowShouldClose(window))
 	{
 		glfwGetCursorPos(window, &mousexpos, &mouseypos);
+		mouseypos = SCREEN_WIDTH - mouseypos;
 		Render();
 	}
 

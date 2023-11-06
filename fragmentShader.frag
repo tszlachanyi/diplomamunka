@@ -75,7 +75,7 @@ vec2 convertCoords(vec2 coords, vec2 oldSize, vec2 newSize)
 	float yRatio = float(oldSize.y) / float(newSize.y);
 
 	int x = int(floor(coords.x / xRatio));
-	int y = (int(newSize.y) - 1) - int(floor(coords.y / yRatio));
+	int y = int(floor(coords.y / yRatio));
 
 	return vec2(x, y);
 }

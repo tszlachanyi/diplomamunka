@@ -77,26 +77,15 @@ void initShaderProgram(vector<int> shaderTypes, vector<const char*> shaderNames,
 	
 }
 
-// Converts from screen coordinates to coordinates of the textures
-vec2 screenToTextureCoords(vec2 coords)
+
+// Convert from one grid size to another
+vec2 convertCoords(vec2 coords, vec2 oldSize, vec2 newSize)
 {
-	float xRatio = float(SCREEN_WIDTH) / float(COMPUTE_WIDTH);
-	float yRatio = float(SCREEN_HEIGHT) / float(COMPUTE_HEIGHT);
+	float xRatio = float(oldSize.x) / float(newSize.x);
+	float yRatio = float(oldSize.y) / float(newSize.y);
 
 	int x = int(floor(coords.x / xRatio));
-	int y = (COMPUTE_HEIGHT - 1) - int(floor(coords.y / yRatio));
-
-	return vec2(x, y);
-}
-
-// Converts from screen coordinates to coordinates of the divided texture
-vec2 screenToDividedTextureCoords(vec2 coords)
-{
-	float xRatio = float(SCREEN_WIDTH) / float(COMPUTE_WIDTH) / float(CELL_DIVISION);
-	float yRatio = float(SCREEN_HEIGHT) / float(COMPUTE_HEIGHT) / float(CELL_DIVISION);
-
-	int x = int(floor(coords.x / xRatio));
-	int y = (COMPUTE_HEIGHT * CELL_DIVISION - 1) - int(floor(coords.y / yRatio));
+	int y = int(floor(coords.y / yRatio));
 
 	return vec2(x, y);
 }
@@ -104,15 +93,13 @@ vec2 screenToDividedTextureCoords(vec2 coords)
 // Get the tile value of the tile clicked on the divided grid
 GLuint getTileValueInDividedGrid(vec2 coords)
 {
-	vec2 textureCoords = screenToTextureCoords(coords);
-	vec2 dividedTextureCoords = screenToDividedTextureCoords(coords);
-	vec2 tileCoords = vec2(dividedTextureCoords.x, dividedTextureCoords.y) - vec2(textureCoords.x * CELL_DIVISION, textureCoords.y * CELL_DIVISION);
+	ivec2 pixelCoords = convertCoords(coords, vec2(SCREEN_WIDTH, SCREEN_HEIGHT), vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT));
+	ivec2 dividedPixelCoords = convertCoords(coords, vec2(SCREEN_WIDTH, SCREEN_HEIGHT), vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT) * vec2(CELL_DIVISION));
 	
-	int tileNumber = tileCoords.x + tileCoords.y * CELL_DIVISION;
-	
-	//cout << tileCoords.x << "," << tileCoords.y << "   " << tileValue << endl;
+	ivec2 subCellCoords = dividedPixelCoords - pixelCoords * ivec2(CELL_DIVISION);
+	uint subCellValue = subCellCoords.x + subCellCoords.y * CELL_DIVISION;
 
-	return tileNumber;
+	return subCellValue;
 }
 
 // Converts from matrix coordinate to texture coordinate of a pixel
@@ -435,7 +422,7 @@ void runWFC()
 			uint endTime = getEpochTime();
 			cout << "elapsed time for rendering : " << endTime - startTime << " ms" << endl;
 		}
-
+	
 		if (uncollapsedAmount() == 0)
 		{
 			break;
@@ -453,6 +440,7 @@ void runWFC()
 	//	}
 	//	
 	//}
+
 
 	uint64_t endTime = getEpochTime();
 	cout << "Whole algorithm - elapsed time : " << endTime - startTime << " ms" << endl;
@@ -487,7 +475,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 	if (action == GLFW_PRESS)
 	{
 		vec2 mouseCoords = vec2(mousexpos, mouseypos);
-		vec2 coords = screenToTextureCoords(mouseCoords);
+		vec2 coords = convertCoords(mouseCoords, vec2(SCREEN_WIDTH, SCREEN_HEIGHT), vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT));
 		
 		//cout << dividedCoords.x <<  " , " << dividedCoords.y << endl;
 
@@ -508,10 +496,10 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 					{
 						GLuint tileNumber = getTileValueInDividedGrid(mouseCoords);
 						vector<GLuint> v = possibleTiles(currentValue);
-						if (find(v.begin(), v.end(), tileNumber) != v.end()) // If the chosen value is still a possible value for the cell, chose it 
+						if (find(v.begin(), v.end(), tileNumber) != v.end()) // If the chosen value is still a possible value for the cell, choose it 
 						{
 							GLuint tileValue = pow(2, tileNumber);
-							computeNext(screenToTextureCoords(mouseCoords), tileValue, true);
+							computeNext(convertCoords(mouseCoords, vec2(SCREEN_WIDTH, SCREEN_HEIGHT), vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT)), tileValue, true);
 						}
 						
 					}
@@ -536,5 +524,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
+	vec2 coords = convertCoords(vec2(mousexpos, mouseypos), vec2(SCREEN_WIDTH, SCREEN_HEIGHT), vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT));
+	cout << coords.x << " , " << coords.y << endl;
 	;
 }
