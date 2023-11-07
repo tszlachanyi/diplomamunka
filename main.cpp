@@ -55,6 +55,13 @@ int main()
 	initTexture(&computeTex2, 2, GL_READ_WRITE, GL_R32UI);
 	initTexture(&entropyTex, 3, GL_WRITE_ONLY, GL_R32UI);
 
+	for (int i = 0; i < textureLocations.size(); i++)
+	{
+		loadedTextures.push_back(0);
+		loadTextureFromFile(&loadedTextures[i], textureLocations[i]);
+	}
+	
+
 	// Shaders, programs
 	initShaderProgram({GL_COMPUTE_SHADER}, {"computeShader.comp"}, {&computeShader}, &computeProgram);
 	initShaderProgram({GL_COMPUTE_SHADER}, {"computeEntropyShader.comp"}, {&computeEntropyShader}, &computeEntropyProgram);

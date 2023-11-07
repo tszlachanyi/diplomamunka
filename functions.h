@@ -45,6 +45,31 @@ void printVector(vector<T> vector)
 	std::cout << "]" << std::endl;
 }
 
+void loadTextureFromFile(GLuint *texture, const char* fileName)
+{
+	stbi_set_flip_vertically_on_load(true);
+	glGenTextures(1, texture);
+	glBindTexture(GL_TEXTURE_2D, *texture);
+	// set the texture wrapping/filtering options (on the currently bound texture object)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	// load and generate the texture
+	int width, height, nrChannels;
+	unsigned char* data = stbi_load(fileName, &width, &height, &nrChannels, 0);
+	if (data)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else
+	{
+		std::cout << "Failed to load texture" << std::endl;
+	}
+	stbi_image_free(data);
+}
+
 void initTexture(GLuint* texture, int unitIndex, int access, int format, vec2 size = vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT))
 {
 	glCreateTextures(GL_TEXTURE_2D, 1, texture);
@@ -204,10 +229,29 @@ array <GLuint, COMPUTE_WIDTH * COMPUTE_HEIGHT> getTextureVector(GLuint texture)
 	return vector;
 }
 
+char* concatenate(const char* c, int i)
+{
+	char buffer[20];
+
+	// Convert int to char*
+	sprintf_s(buffer, "%d", i + 1);
+
+	char str1[] = "loadedTexture";
+	char result[100];
+
+	// Copy the first string to the result
+	strcpy_s(result, str1); 
+	// Concatenate the second string to the result
+	strcat_s(result, buffer); 
+	
+	return result;
+}
+
 void Render()
 {
 	glUseProgram(screenShaderProgram);
 
+	// Get the current computeTex to render
 	if (currentIteration % 2 == 0)
 	{
 		glBindImageTexture(1, computeTex1, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
@@ -217,13 +261,25 @@ void Render()
 		glBindImageTexture(1, computeTex2, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 	}
 
+	// Send externally loaded textures to gpu
+	for (int i = 0; i < textureLocations.size(); i++)
+	{
+		glActiveTexture(GL_TEXTURE0+i);
+		glBindTexture(GL_TEXTURE_2D, loadedTextures[i]);
+		glUniform1i(glGetUniformLocation(screenShaderProgram, concatenate("loadedTexture", i)), i);
+	}
+
+	// Send uniforms
 	glUniform1ui(glGetUniformLocation(screenShaderProgram, "gridThickness"), GRID_THICKNESS);
 	glUniform4ui(glGetUniformLocation(screenShaderProgram, "screenParams"), SCREEN_WIDTH, SCREEN_HEIGHT, COMPUTE_WIDTH, COMPUTE_HEIGHT);
 	glUniform2ui(glGetUniformLocation(screenShaderProgram, "mouseCoords"), uint(mousexpos), uint(mouseypos));
 	glUniform1ui(glGetUniformLocation(screenShaderProgram, "DIVIDE_CELLS"), DIVIDE_CELLS);
 	glUniform1ui(glGetUniformLocation(screenShaderProgram, "CELL_DIVISION"), CELL_DIVISION);
 	glUniform1ui(glGetUniformLocation(screenShaderProgram, "TILE_VALUES"), TILE_VALUES);
+	glUniform1ui(glGetUniformLocation(screenShaderProgram, "COLOR_FROM_TEXTURE"), COLOR_FROM_TEXTURE);
 	glBindVertexArray(VAO);
+
+	// Draw
 	glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_INT, 0);
 
 	glfwSwapBuffers(window);
@@ -524,7 +580,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
-	vec2 coords = convertCoords(vec2(mousexpos, mouseypos), vec2(SCREEN_WIDTH, SCREEN_HEIGHT), vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT));
-	cout << coords.x << " , " << coords.y << endl;
+	//vec2 coords = convertCoords(vec2(mousexpos, mouseypos), vec2(SCREEN_WIDTH, SCREEN_HEIGHT), vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT));
+	//cout << coords.x << " , " << coords.y << endl;
 	;
 }

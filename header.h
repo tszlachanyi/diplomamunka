@@ -17,6 +17,9 @@
 #include "GLFW/glfw3.h"
 #include "glm/glm.hpp"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
+
 using namespace std;
 using namespace std::chrono;
 using namespace glm;
@@ -40,11 +43,16 @@ const unsigned int CELL_DIVISION = 2;
 
 const bool RENDER_DURING_WFC = true;
 
+const bool COLOR_FROM_TEXTURE = true;
+
 bool vSync = false;
 
 GLuint computeTex2;
 GLuint computeTex1;
 GLuint entropyTex;
+
+vector<GLuint> loadedTextures;
+vector<const char*> textureLocations = {"textures/texture1.png", "textures/texture2.png"  ,"textures/texture3.png" ,"textures/texture4.png" };
 
 GLuint screenVertexShader;
 GLuint screenFragmentShader;

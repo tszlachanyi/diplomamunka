@@ -5,17 +5,32 @@ in vec2 UVs;
 
 layout (binding = 1, r32ui) readonly uniform uimage2D inputImage;
 
+uniform sampler2D loadedTexture1;
+uniform sampler2D loadedTexture2;
+uniform sampler2D loadedTexture3;
+uniform sampler2D loadedTexture4;
+
 uniform uint gridThickness;
 uniform uvec4 screenParams;
 uniform uvec2 mouseCoords;
 uniform bool DIVIDE_CELLS;
 uniform uint CELL_DIVISION;
 uniform uint TILE_VALUES;
+uniform bool COLOR_FROM_TEXTURE;
 
 uint SCREEN_WIDTH = screenParams[0];
 uint SCREEN_HEIGHT = screenParams[1];
 uint COMPUTE_WIDTH = screenParams[2];
 uint COMPUTE_HEIGHT = screenParams[3];
+
+float xgap;
+float ygap;
+ivec2 cellCoords;	// Coordinates of the current cell in the grid
+ivec2 dividedCellCoords;	// Coordinates of the current cell in the divided grid
+vec2 textureCoords;		// Coordinates of the pixel relative to the current cell (determines where to sample texture)
+vec2 dividedTextureCoords;		// Coordinates of the pixel relative to the current cell in the divided grid (determines where to sample texture)
+uint cellValue;		// Tile value of the current cell
+uint entr;		// Entropy value of the current cell
 
 // Gets the color of the cell based on it's GLuint value
 vec4 getTileColor(uint number)
@@ -43,6 +58,43 @@ vec4 getTileColor(uint number)
 	}
 
 	return color;
+}
+
+// Gets the color for a pixel from the texture corresponding to it's tile value
+vec4 getTextureColor(uint number, vec2 textureCoords)
+{	
+	vec4 color;
+
+	switch (number) {
+	case 1:
+		color = texture(loadedTexture1, textureCoords);
+		break;
+	case 2:
+		color = texture(loadedTexture2, textureCoords);
+		break;
+	case 4:
+		color = texture(loadedTexture3, textureCoords);
+		break;
+	case 8:
+		color = texture(loadedTexture4, textureCoords);
+		break;
+	default:
+		color = getTileColor(number);
+	}
+
+	return color;
+}
+
+vec4 getPixelColor(uint number, vec2 textureCoords)
+{
+	if(!COLOR_FROM_TEXTURE)
+	{
+		return getTileColor(number);
+	}
+	else
+	{
+		return getTextureColor(number, textureCoords);
+	}
 }
 
 uint nthBit(uint number, uint n)
@@ -82,22 +134,21 @@ vec2 convertCoords(vec2 coords, vec2 oldSize, vec2 newSize)
 
 void main()
 {
-    
-    float xgap;
-    float ygap;
-    ivec2 pixelCoords = ivec2(vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT) * UVs);
-	ivec2 dividedPixelCoords = ivec2(vec2(COMPUTE_WIDTH * CELL_DIVISION, COMPUTE_HEIGHT * CELL_DIVISION) * UVs);
-	uint cellValue = imageLoad(inputImage, pixelCoords)[0];
-	uint entr = entropy(cellValue);
+    cellCoords = ivec2(vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT) * UVs);
+	dividedCellCoords = ivec2(vec2(COMPUTE_WIDTH * CELL_DIVISION, COMPUTE_HEIGHT * CELL_DIVISION) * UVs);
+	textureCoords = vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT) * UVs - vec2(cellCoords);
+	dividedTextureCoords = vec2(COMPUTE_WIDTH * CELL_DIVISION, COMPUTE_HEIGHT * CELL_DIVISION) * UVs - vec2(dividedCellCoords);
+	cellValue = imageLoad(inputImage, cellCoords)[0];
+	entr = entropy(cellValue);
 
 	if (!DIVIDE_CELLS || entr == 1 || entr == 0)
 	{
 		// Cell color
 		
-		FragColor = getTileColor(cellValue);
+		FragColor = getPixelColor(cellValue, textureCoords);
 
 		// Hover effect
-		if (convertCoords(mouseCoords, vec2(SCREEN_WIDTH, SCREEN_HEIGHT),vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT)) == pixelCoords)
+		if (convertCoords(mouseCoords, vec2(SCREEN_WIDTH, SCREEN_HEIGHT),vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT)) == cellCoords)
 		{
 			FragColor = FragColor * 0.5 + 0.25;
 		}
@@ -105,22 +156,22 @@ void main()
 	else
 	{
 		// Cell color
-		ivec2 subCellCoords = dividedPixelCoords - pixelCoords * ivec2(CELL_DIVISION);
+		ivec2 subCellCoords = dividedCellCoords - cellCoords * ivec2(CELL_DIVISION);
 		uint subCellValue = subCellCoords.x + subCellCoords.y * CELL_DIVISION;
 		
 		if (tilePossible(cellValue, subCellValue))
 		{
 			subCellValue = uint(pow(2, subCellValue));
-			FragColor = getTileColor(subCellValue) * vec4(0.75);
+			FragColor = getPixelColor(subCellValue, dividedTextureCoords) * vec4(0.75);
 		}
 		else
 		{
-			FragColor = getTileColor(0) ;
+			FragColor = getPixelColor(0, textureCoords) ;
 		}
 		
 
 		// Hover effect
-		if (convertCoords(mouseCoords, vec2(SCREEN_WIDTH, SCREEN_HEIGHT),vec2(COMPUTE_WIDTH * CELL_DIVISION, COMPUTE_HEIGHT * CELL_DIVISION)) == dividedPixelCoords)
+		if (convertCoords(mouseCoords, vec2(SCREEN_WIDTH, SCREEN_HEIGHT),vec2(COMPUTE_WIDTH * CELL_DIVISION, COMPUTE_HEIGHT * CELL_DIVISION)) == dividedCellCoords)
 		{
 			FragColor = FragColor * 0.5 + 0.25;
 		}
@@ -136,6 +187,6 @@ void main()
         FragColor = vec4(0, 0, 0, 1.0);
     }
 
-	
+	FragColor = texture(loadedTexture1, UVs);
 
 }
