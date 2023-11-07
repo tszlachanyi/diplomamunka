@@ -46,5 +46,8 @@
     <None Include="computeEntropyShader.comp">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="sudokuComputeShader.comp">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

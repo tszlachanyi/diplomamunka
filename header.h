@@ -30,20 +30,22 @@ const unsigned short OPENGL_MINOR_VERSION = 6;
 const unsigned int SCREEN_WIDTH = 1024;
 const unsigned int SCREEN_HEIGHT = 1024;
 
-const unsigned int COMPUTE_WIDTH = 16;
-const unsigned int COMPUTE_HEIGHT = 16;
+const unsigned int COMPUTE_WIDTH = 9;
+const unsigned int COMPUTE_HEIGHT = 9;
 
 const unsigned int MAXIMUM_RULES = 100;
-const unsigned int TILE_VALUES = 4;
+const unsigned int TILE_VALUES = 9;
 
 const unsigned int GRID_THICKNESS = 2;
 
 const bool DIVIDE_CELLS = true;
-const unsigned int CELL_DIVISION = 2;
+const unsigned int CELL_DIVISION = 3;
 
 const bool RENDER_DURING_WFC = true;
 
 const bool COLOR_FROM_TEXTURE = true;
+
+const bool SUDOKU = true;
 
 bool vSync = false;
 
@@ -52,12 +54,13 @@ GLuint computeTex1;
 GLuint entropyTex;
 
 vector<GLuint> loadedTextures;
-vector<const char*> textureLocations = {"textures/texture1.png", "textures/texture2.png"  ,"textures/texture3.png" ,"textures/texture4.png" };
+vector<const char*> textureLocations = {"textures/texture1.png", "textures/texture2.png"  ,"textures/texture3.png" ,"textures/texture4.png", "textures/texture5.png","textures/texture6.png","textures/texture7.png","textures/texture8.png","textures/texture9.png"};
 
 GLuint screenVertexShader;
 GLuint screenFragmentShader;
 GLuint computeShader;
 GLuint computeEntropyShader;
+GLuint sudokuComputeShader;
 
 array<GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> textureVector;
 array<GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> entropyVector;
@@ -66,6 +69,7 @@ vector<vec2> uncollapsed;
 GLuint screenShaderProgram;
 GLuint computeProgram;
 GLuint computeEntropyProgram;
+GLuint sudokuComputeProgram;
 GLuint VAO, VBO, EBO;
 GLFWwindow* window;
 

@@ -9,6 +9,11 @@ uniform sampler2D loadedTexture1;
 uniform sampler2D loadedTexture2;
 uniform sampler2D loadedTexture3;
 uniform sampler2D loadedTexture4;
+uniform sampler2D loadedTexture5;
+uniform sampler2D loadedTexture6;
+uniform sampler2D loadedTexture7;
+uniform sampler2D loadedTexture8;
+uniform sampler2D loadedTexture9;
 
 uniform uint gridThickness;
 uniform uvec4 screenParams;
@@ -17,6 +22,7 @@ uniform bool DIVIDE_CELLS;
 uniform uint CELL_DIVISION;
 uniform uint TILE_VALUES;
 uniform bool COLOR_FROM_TEXTURE;
+uniform bool SUDOKU;
 
 uint SCREEN_WIDTH = screenParams[0];
 uint SCREEN_HEIGHT = screenParams[1];
@@ -50,6 +56,21 @@ vec4 getTileColor(uint number)
 	case 8:
 		color = vec4(1, 1, 0, 1);
 		break;
+	case 16:
+		color = vec4(0, 1, 1, 1);
+		break;
+	case 32:
+		color = color = vec4(1, 0, 1, 1);
+		break;
+	case 64:
+		color = color = vec4(1, 0.5, 0, 1);
+		break;
+	case 128:
+		color = color = vec4(0, 1, 0.5, 1);
+		break;
+	case 256:
+		color = color = vec4(0.5, 0, 1, 1);
+		break;
 	case 0:
 		color = vec4(0, 0, 0, 1);
 		break;
@@ -77,6 +98,21 @@ vec4 getTextureColor(uint number, vec2 textureCoords)
 		break;
 	case 8:
 		color = texture(loadedTexture4, textureCoords);
+		break;
+	case 16:
+		color = texture(loadedTexture5, textureCoords);
+		break;
+	case 32:
+		color = texture(loadedTexture6, textureCoords);
+		break;
+	case 64:
+		color = texture(loadedTexture7, textureCoords);
+		break;
+	case 128:
+		color = texture(loadedTexture8, textureCoords);
+		break;
+	case 256:
+		color = texture(loadedTexture9, textureCoords);
 		break;
 	default:
 		color = getTileColor(number);
@@ -187,5 +223,17 @@ void main()
         FragColor = vec4(0, 0, 0, 1.0);
     }
 
+	// Sudoku Grid
+	if (SUDOKU)
+	{
+		xgap = float(SCREEN_WIDTH) / float(COMPUTE_WIDTH) * 3;
+		ygap = float(SCREEN_HEIGHT) / float(COMPUTE_HEIGHT) * 3;
+	
+		if (gridThickness * 3 > mod(gl_FragCoord.x, xgap) || gridThickness * 3 > mod(gl_FragCoord.y, ygap) )
+		{
+		    FragColor = vec4(0, 0, 0, 1.0);
+		}
+	}
+    
 
 }

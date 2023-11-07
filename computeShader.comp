@@ -7,29 +7,30 @@ layout (binding = 2, r32ui) writeonly uniform uimage2D outputImage;
 uniform ivec3 rules[100];
 uniform uint rulesAmount;
 uniform uint chosenValue;
-uniform uvec2 coordinates;
+uniform ivec2 chosenCoords; // Cell choosen to get collapsed
+ivec2 currentCoords; // Current cell
 
 void main()
 {
-	ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
-	uint pixel;
+	currentCoords = ivec2(gl_GlobalInvocationID.xy);
+	uint cellValue;
 
 
-	if (pixelCoords == coordinates)		// Give the chosen value to the chosen cell
+	if (currentCoords == chosenCoords)		// Give the chosen value to the chosen cell
 	{
-		pixel = chosenValue;
+		cellValue = chosenValue;
 	}
 	else	// Use rules on other cells
 	{
-		pixel = imageLoad(inputImage, pixelCoords)[0];
+		cellValue = imageLoad(inputImage, currentCoords)[0];
 		for (int i = 0; i < rulesAmount; i++)
 		{
-			if (pixelCoords == coordinates + ivec2(rules[i][0], rules[i][1]))
+			if (currentCoords == chosenCoords + ivec2(rules[i][0], rules[i][1]))
 			{
-				pixel = pixel &  rules[i][2];
+				cellValue = cellValue &  rules[i][2];
 			}
 		}
 	}
 
-	imageStore(outputImage, pixelCoords, uvec4(pixel, 0u, 0u, 0u));
+	imageStore(outputImage, currentCoords, uvec4(cellValue, 0u, 0u, 0u));
 }

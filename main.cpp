@@ -65,10 +65,17 @@ int main()
 	// Shaders, programs
 	initShaderProgram({GL_COMPUTE_SHADER}, {"computeShader.comp"}, {&computeShader}, &computeProgram);
 	initShaderProgram({GL_COMPUTE_SHADER}, {"computeEntropyShader.comp"}, {&computeEntropyShader}, &computeEntropyProgram);
+	initShaderProgram({ GL_COMPUTE_SHADER }, { "sudokuComputeShader.comp" }, { &sudokuComputeShader }, &sudokuComputeProgram);
 	initShaderProgram({GL_VERTEX_SHADER , GL_FRAGMENT_SHADER}, {"vertexShader.vert","fragmentShader.frag"}, {&screenVertexShader,&screenFragmentShader }, &screenShaderProgram);
 
 	// Load initial position
 	initScreen();
+
+	// Extend rules vector to not crash
+	while (TILE_VALUES > rules.size())
+	{
+		rules.push_back({});
+	}
 
 	// Main Loop
 	while (!glfwWindowShouldClose(window))

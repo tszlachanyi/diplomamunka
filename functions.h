@@ -55,12 +55,17 @@ void loadTextureFromFile(GLuint *texture, const char* fileName)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//glEnable(GL_BLEND);
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	// load and generate the texture
 	int width, height, nrChannels;
 	unsigned char* data = stbi_load(fileName, &width, &height, &nrChannels, 0);
+	cout << nrChannels << "   " << width << "    " << height << endl;
+	
+
 	if (data)
 	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 	}
 	else
@@ -68,6 +73,7 @@ void loadTextureFromFile(GLuint *texture, const char* fileName)
 		std::cout << "Failed to load texture" << std::endl;
 	}
 	stbi_image_free(data);
+	
 }
 
 void initTexture(GLuint* texture, int unitIndex, int access, int format, vec2 size = vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT))
@@ -277,6 +283,7 @@ void Render()
 	glUniform1ui(glGetUniformLocation(screenShaderProgram, "CELL_DIVISION"), CELL_DIVISION);
 	glUniform1ui(glGetUniformLocation(screenShaderProgram, "TILE_VALUES"), TILE_VALUES);
 	glUniform1ui(glGetUniformLocation(screenShaderProgram, "COLOR_FROM_TEXTURE"), COLOR_FROM_TEXTURE);
+	glUniform1ui(glGetUniformLocation(screenShaderProgram, "SUDOKU"), SUDOKU);
 	glBindVertexArray(VAO);
 
 	// Draw
@@ -301,7 +308,7 @@ void initScreen()
 	glTextureSubImage2D(computeTex1, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &textureVector);
 }
 
-// Use compute shader to create computeTex2 from current computeTex1
+// Use compute shader to create next iteration in one of the computeTextures
 void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = false)
 {
 	uint startTime = getEpochTime();
@@ -323,20 +330,37 @@ void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = fa
 
 
 	// Get which tiles are affected by the rules (and are not collapsed already)
-	for  (int i = 0; i < rules[tile].size(); i++)
+	if (!SUDOKU)
 	{
-		vec2 affectedTile = coordinates + vec2(rules[tile][i][0], rules[tile][i][1]);
-		if (isInsideGrid(affectedTile))
+		for (int i = 0; i < rules[tile].size(); i++)
 		{
-			if (possibleTiles(textureVector[matrixToVecCoords(affectedTile)]).size() > 1)
+			vec2 affectedTile = coordinates + vec2(rules[tile][i][0], rules[tile][i][1]);
+			if (isInsideGrid(affectedTile))
 			{
-				collapsedTiles.push_back(affectedTile);
+				if (possibleTiles(textureVector[matrixToVecCoords(affectedTile)]).size() > 1)
+				{
+					collapsedTiles.push_back(affectedTile);
+				}
+			}
+
+		}
+	}
+	else
+	{
+		for (int i = 0; i < COMPUTE_WIDTH; i++)
+		{
+			for (int j = 0; j < COMPUTE_HEIGHT; j++)
+			{
+				if (possibleTiles(textureVector[matrixToVecCoords(vec2(i, j))]).size() > 1)
+				{
+					collapsedTiles.push_back(vec2(i, j));
+				}
+					
 			}
 		}
-
 	}
 
-	// Converting rules into required format
+	// Convert rules into required format
 	vector<GLint> v = flatten(rules[tile]);
 	GLint* flattenedRules = new int[v.size()];
 	copy(v.begin(), v.end(), flattenedRules);
@@ -354,15 +378,21 @@ void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = fa
 	}
 	
 	// Run compute shader
-	glUseProgram(computeProgram);
+	if (!SUDOKU)
+	{
+		glUseProgram(computeProgram);
+	}
+	else
+	{
+		glUseProgram(sudokuComputeProgram);
+	}
+	
 
 	// Send uniform values to compute shader
-	//float r = fract(sin(startTime) * 43758.5453); // random value between 0 and 1
-
 	glUniform3iv(glGetUniformLocation(computeProgram, "rules"), MAXIMUM_RULES, flattenedRules);
 	glUniform1ui(glGetUniformLocation(computeProgram, "rulesAmount"), GLuint(v.size() / 3));
 	glUniform1ui(glGetUniformLocation(computeProgram, "chosenValue"), chosenValue);
-	glUniform2ui(glGetUniformLocation(computeProgram, "coordinates"), coordinates.x, coordinates.y);
+	glUniform2i(glGetUniformLocation(computeProgram, "chosenCoords"), coordinates.x, coordinates.y);
 
 	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
