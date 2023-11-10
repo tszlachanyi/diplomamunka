@@ -376,6 +376,12 @@ void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = fa
 		glBindImageTexture(1, computeTex2, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 		glBindImageTexture(2, computeTex1, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 	}
+
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicCounterBuffer);
+	GLuint one_unsined_zero = 0;
+	glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &one_unsined_zero);
+	//glBindBufferRange(GL_ATOMIC_COUNTER_BUFFER, 0, atomicCounterBuffer, 0, sizeof(GLuint));
+	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomicCounterBuffer);
 	
 	// Run compute shader
 	if (!SUDOKU)
@@ -408,6 +414,14 @@ void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = fa
 	}
 	
 	currentIteration++;
+
+	// atomic
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicCounterBuffer);
+	GLuint* ptr = (GLuint*)glMapBufferRange(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint),
+		GL_MAP_READ_BIT);
+	cout << "counter value = " << *ptr << endl;
+	glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
 	// Print time
 	uint endTime = getEpochTime();

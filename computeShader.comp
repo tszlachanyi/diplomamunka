@@ -10,6 +10,8 @@ uniform uint chosenValue;
 uniform ivec2 chosenCoords; // Cell choosen to get collapsed
 ivec2 currentCoords; // Current cell
 
+layout(binding = 0) uniform atomic_uint one;
+
 void main()
 {
 	currentCoords = ivec2(gl_GlobalInvocationID.xy);
@@ -32,5 +34,7 @@ void main()
 		}
 	}
 
-	imageStore(outputImage, currentCoords, uvec4(cellValue, 0u, 0u, 0u));
+	uint one1 = atomicCounterIncrement(one);
+
+	imageStore(outputImage, currentCoords, uvec4(one1, 0u, 0u, 0u));
 }

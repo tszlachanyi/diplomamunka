@@ -62,6 +62,7 @@ GLuint screenFragmentShader;
 GLuint computeShader;
 GLuint computeEntropyShader;
 GLuint sudokuComputeShader;
+GLuint atomicCounterBuffer;
 
 array<GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> textureVector;
 array<GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> entropyVector;

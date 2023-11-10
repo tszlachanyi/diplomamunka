@@ -50,6 +50,12 @@ int main()
 	glVertexArrayVertexBuffer(VAO, 0, VBO, 0, 5 * sizeof(GLfloat));
 	glVertexArrayElementBuffer(VAO, EBO);
 
+	glGenBuffers(1, &atomicCounterBuffer);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicCounterBuffer);
+	glBufferStorage(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_MAP_READ_BIT);
+	//GLuint one_unsined_zero = 0;
+	//glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &one_unsined_zero);
+
 	// Textures
 	initTexture(&computeTex1, 1, GL_READ_WRITE, GL_R32UI);
 	initTexture(&computeTex2, 2, GL_READ_WRITE, GL_R32UI);
