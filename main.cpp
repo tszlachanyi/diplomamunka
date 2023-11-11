@@ -2,6 +2,7 @@
 
 int main()
 {
+	cout << CELL_DIVISION;
 	// Initialization
 	srand(time(NULL));
 

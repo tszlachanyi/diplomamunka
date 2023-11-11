@@ -31,16 +31,16 @@ const unsigned short OPENGL_MINOR_VERSION = 6;
 const unsigned int SCREEN_WIDTH = 1024;
 const unsigned int SCREEN_HEIGHT = 1024;
 
-const unsigned int COMPUTE_WIDTH = 16;
-const unsigned int COMPUTE_HEIGHT = 16;
+const unsigned int COMPUTE_WIDTH = 9;
+const unsigned int COMPUTE_HEIGHT = 9;
 
 const unsigned int MAXIMUM_RULES = 100;
-const unsigned int TILE_VALUES = 9;
+const unsigned int TILE_VALUES = 4;
 
 const unsigned int GRID_THICKNESS = 2;
 
 const bool DIVIDE_CELLS = true;
-const unsigned int CELL_DIVISION = 2;
+const unsigned int CELL_DIVISION = ceil(sqrt(TILE_VALUES));
 
 const bool RENDER_DURING_WFC = true;
 

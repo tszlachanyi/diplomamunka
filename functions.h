@@ -60,8 +60,6 @@ void loadTextureFromFile(GLuint *texture, const char* fileName)
 	// load and generate the texture
 	int width, height, nrChannels;
 	unsigned char* data = stbi_load(fileName, &width, &height, &nrChannels, 0);
-	cout << nrChannels << "   " << width << "    " << height << endl;
-	
 
 	if (data)
 	{
@@ -235,6 +233,7 @@ array <GLuint, COMPUTE_WIDTH * COMPUTE_HEIGHT> getTextureVector(GLuint texture)
 	return vector;
 }
 
+// Concatenates a string (char*) with an int
 char* concatenate(const char* c, int i)
 {
 	char buffer[20];
@@ -351,7 +350,7 @@ void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = fa
 		{
 			for (int j = 0; j < COMPUTE_HEIGHT; j++)
 			{
-				if (possibleTiles(textureVector[matrixToVecCoords(vec2(i, j))]).size() > 1)
+				if (possibleTiles(textureVector[matrixToVecCoords(vec2(i, j))]).size() > 1 && (vec2(i, j) != coordinates))
 				{
 					collapsedTiles.push_back(vec2(i, j));
 				}
