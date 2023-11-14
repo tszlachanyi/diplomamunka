@@ -162,6 +162,7 @@
     <ClInclude Include="header.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="chooseTileValueShader.comp" />
     <None Include="computeEntropyShader.comp" />
     <None Include="computeShader.comp" />
     <None Include="fragmentShader.frag" />

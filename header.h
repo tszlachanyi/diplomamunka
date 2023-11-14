@@ -31,8 +31,8 @@ const unsigned short OPENGL_MINOR_VERSION = 6;
 const unsigned int SCREEN_WIDTH = 1024;
 const unsigned int SCREEN_HEIGHT = 1024;
 
-const unsigned int COMPUTE_WIDTH = 9;
-const unsigned int COMPUTE_HEIGHT = 9;
+const unsigned int COMPUTE_WIDTH = 16;
+const unsigned int COMPUTE_HEIGHT = 16;
 
 const unsigned int MAXIMUM_RULES = 100;
 const unsigned int TILE_VALUES = 4;
@@ -61,16 +61,22 @@ GLuint screenVertexShader;
 GLuint screenFragmentShader;
 GLuint computeShader;
 GLuint computeEntropyShader;
+GLuint chooseTileValueShader;
 GLuint sudokuComputeShader;
-GLuint atomicCounterBuffer;
+
+GLuint minEntropyBuffer;
+GLuint minEntropyCellsBuffer;
+GLuint minEntropyCellsAmountBuffer;
 
 array<GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> textureVector;
 array<GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> entropyVector;
 vector<vec2> uncollapsed;
+GLuint minEntropyCellsAmount;
 
 GLuint screenShaderProgram;
 GLuint computeProgram;
 GLuint computeEntropyProgram;
+GLuint chooseTileValueProgram;
 GLuint sudokuComputeProgram;
 GLuint VAO, VBO, EBO;
 GLFWwindow* window;
@@ -79,13 +85,6 @@ GLint currentIteration = 0;
 
 double mousexpos, mouseypos;
 
-vector<vector<vector<GLint>>> rules =
-{
-   {{0,1,0b1110} , {1,0,0b1110} , {0,-1,0b1110}, {-1,0,0b1110}},
-   {{0,1,0b1101} , {1,0,0b1101} , {0,-1,0b1101}, {-1,0,0b1101}},
-   {{0,1,0b1011} , {1,0,0b1011} , {0,-1,0b1011}, {-1,0,0b1011}},
-   {{0,1,0b0111} , {1,0,0b0111} , {0,-1,0b0111}, {-1,0,0b0111}},
-};
 
 // example for assymetric rules
 //vector<vector<vector<GLint>>> rules =

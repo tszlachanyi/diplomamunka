@@ -49,5 +49,8 @@
     <None Include="sudokuComputeShader.comp">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="chooseTileValueShader.comp">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

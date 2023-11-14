@@ -1,0 +1,27 @@
+#version 460 core
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout (binding = 1, r32ui) readonly uniform uimage2D inputImage;
+layout (binding = 3, r32ui) readonly uniform uimage2D entropyImage;
+
+layout(binding = 0) uniform atomic_uint minCounter;
+layout(binding = 1) buffer ssbo
+{
+    ivec2 minEntropyCells[];
+};
+layout(binding = 2) uniform atomic_uint minEntropyCellsAmount;
+
+void main()
+{
+	ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
+	uint value = imageLoad(inputImage, pixelCoords)[0];
+	uint entropy = imageLoad(entropyImage, pixelCoords)[0];
+	uint minEntropy = atomicCounter(minCounter);
+
+	if (entropy == minEntropy)
+	{
+		uint i = atomicCounterIncrement(minEntropyCellsAmount);
+		minEntropyCells[i] = pixelCoords;
+	}
+
+}

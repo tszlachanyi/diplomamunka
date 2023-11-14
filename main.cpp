@@ -2,7 +2,6 @@
 
 int main()
 {
-	cout << CELL_DIVISION;
 	// Initialization
 	srand(time(NULL));
 
@@ -51,16 +50,25 @@ int main()
 	glVertexArrayVertexBuffer(VAO, 0, VBO, 0, 5 * sizeof(GLfloat));
 	glVertexArrayElementBuffer(VAO, EBO);
 
-	glGenBuffers(1, &atomicCounterBuffer);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicCounterBuffer);
-	glBufferStorage(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_MAP_READ_BIT);
-	//GLuint one_unsined_zero = 0;
-	//glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &one_unsined_zero);
 
+	// Buffers
+	glGenBuffers(1, &minEntropyBuffer);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, minEntropyBuffer);
+	glBufferStorage(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_MAP_READ_BIT);
+
+	glGenBuffers(1, &minEntropyCellsBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, minEntropyCellsBuffer);
+	glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(ivec2) * COMPUTE_WIDTH * COMPUTE_HEIGHT, nullptr, GL_MAP_READ_BIT);
+
+	glGenBuffers(1, &minEntropyCellsAmountBuffer);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, minEntropyCellsAmountBuffer);
+	glBufferStorage(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_MAP_READ_BIT);
+
+	
 	// Textures
 	initTexture(&computeTex1, 1, GL_READ_WRITE, GL_R32UI);
 	initTexture(&computeTex2, 2, GL_READ_WRITE, GL_R32UI);
-	initTexture(&entropyTex, 3, GL_WRITE_ONLY, GL_R32UI);
+	initTexture(&entropyTex, 3, GL_READ_WRITE, GL_R32UI);
 
 	for (int i = 0; i < textureLocations.size(); i++)
 	{
@@ -72,17 +80,13 @@ int main()
 	// Shaders, programs
 	initShaderProgram({GL_COMPUTE_SHADER}, {"computeShader.comp"}, {&computeShader}, &computeProgram);
 	initShaderProgram({GL_COMPUTE_SHADER}, {"computeEntropyShader.comp"}, {&computeEntropyShader}, &computeEntropyProgram);
+	initShaderProgram({ GL_COMPUTE_SHADER }, { "chooseTileValueShader.comp" }, { &chooseTileValueShader }, &chooseTileValueProgram);
 	initShaderProgram({ GL_COMPUTE_SHADER }, { "sudokuComputeShader.comp" }, { &sudokuComputeShader }, &sudokuComputeProgram);
 	initShaderProgram({GL_VERTEX_SHADER , GL_FRAGMENT_SHADER}, {"vertexShader.vert","fragmentShader.frag"}, {&screenVertexShader,&screenFragmentShader }, &screenShaderProgram);
-
+	
 	// Load initial position
 	initScreen();
 
-	// Extend rules vector to not crash
-	while (TILE_VALUES > rules.size())
-	{
-		rules.push_back({});
-	}
 
 	// Main Loop
 	while (!glfwWindowShouldClose(window))

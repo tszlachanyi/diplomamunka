@@ -1,4 +1,4 @@
-#include "header.h"
+﻿#include "header.h"
 
 // Flatten vector of vectors into vector
 template<typename T>
@@ -267,7 +267,7 @@ void Render()
 	}
 
 	// Send externally loaded textures to gpu
-	for (int i = 0; i < textureLocations.size(); i++)
+	for (int i = 0; i < loadedTextures.size(); i++)
 	{
 		glActiveTexture(GL_TEXTURE0+i);
 		glBindTexture(GL_TEXTURE_2D, loadedTextures[i]);
@@ -308,61 +308,10 @@ void initScreen()
 }
 
 // Use compute shader to create next iteration in one of the computeTextures
-void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = false)
+void computeNext(vec2 coordinates = vec2(-1, -1), GLuint chosenValue = 0, bool manualValue = false)
 {
 	uint startTime = getEpochTime();
-	GLuint currentValue = textureVector[matrixToVecCoords(coordinates)];
-	vector<vec2> collapsedTiles;
-
-	// Choose which value to give to the cell
-
-	if (manualValue == false)
-	{
-		vector<GLuint> possibleValues = possibleTiles(currentValue);
-
-		int r = rand() % possibleValues.size();
-		chosenValue = pow(2, possibleValues[r]);
-
-		
-	}
-	int tile = tileValue(chosenValue);
-
-
-	// Get which tiles are affected by the rules (and are not collapsed already)
-	if (!SUDOKU)
-	{
-		for (int i = 0; i < rules[tile].size(); i++)
-		{
-			vec2 affectedTile = coordinates + vec2(rules[tile][i][0], rules[tile][i][1]);
-			if (isInsideGrid(affectedTile))
-			{
-				if (possibleTiles(textureVector[matrixToVecCoords(affectedTile)]).size() > 1)
-				{
-					collapsedTiles.push_back(affectedTile);
-				}
-			}
-
-		}
-	}
-	else
-	{
-		for (int i = 0; i < COMPUTE_WIDTH; i++)
-		{
-			for (int j = 0; j < COMPUTE_HEIGHT; j++)
-			{
-				if (possibleTiles(textureVector[matrixToVecCoords(vec2(i, j))]).size() > 1 && (vec2(i, j) != coordinates))
-				{
-					collapsedTiles.push_back(vec2(i, j));
-				}
-					
-			}
-		}
-	}
-
-	// Convert rules into required format
-	vector<GLint> v = flatten(rules[tile]);
-	GLint* flattenedRules = new int[v.size()];
-	copy(v.begin(), v.end(), flattenedRules);
+	vector<vec2> collapsedTiles = {};
 
 	// Set input and output textures
 	if (currentIteration % 2 == 0)
@@ -375,14 +324,8 @@ void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = fa
 		glBindImageTexture(1, computeTex2, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 		glBindImageTexture(2, computeTex1, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 	}
-
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicCounterBuffer);
-	GLuint one_unsined_zero = 0;
-	glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &one_unsined_zero);
-	//glBindBufferRange(GL_ATOMIC_COUNTER_BUFFER, 0, atomicCounterBuffer, 0, sizeof(GLuint));
-	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomicCounterBuffer);
 	
-	// Run compute shader
+	// Use compute shader
 	if (!SUDOKU)
 	{
 		glUseProgram(computeProgram);
@@ -392,40 +335,26 @@ void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = fa
 		glUseProgram(sudokuComputeProgram);
 	}
 	
-
 	// Send uniform values to compute shader
-	glUniform3iv(glGetUniformLocation(computeProgram, "rules"), MAXIMUM_RULES, flattenedRules);
-	glUniform1ui(glGetUniformLocation(computeProgram, "rulesAmount"), GLuint(v.size() / 3));
-	glUniform1ui(glGetUniformLocation(computeProgram, "chosenValue"), chosenValue);
-	glUniform2i(glGetUniformLocation(computeProgram, "chosenCoords"), coordinates.x, coordinates.y);
+	float random1 = ((double)rand()) / RAND_MAX;
+	float random2 = ((double)rand()) / RAND_MAX;
+	cout << random1 << "   " << random2 << endl;
 
+	glUniform1ui(glGetUniformLocation(computeProgram, "userChosenValue"), chosenValue);
+	glUniform2i(glGetUniformLocation(computeProgram, "userChosenCoords"), coordinates.x, coordinates.y);
+	glUniform1f(glGetUniformLocation(computeProgram, "random1"), random1);
+	glUniform1f(glGetUniformLocation(computeProgram, "random2"), random2);
+	glUniform1ui(glGetUniformLocation(computeProgram, "TILE_VALUES"), TILE_VALUES);
+
+	// Run compute shader
 	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
-	// Save the new iteration
-	if (currentIteration % 2 == 0)
-	{
-		textureVector = getTextureVector(computeTex2);
-	}
-	else
-	{
-		textureVector = getTextureVector(computeTex1);
-	}
-	
 	currentIteration++;
-
-	// atomic
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicCounterBuffer);
-	GLuint* ptr = (GLuint*)glMapBufferRange(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint),
-		GL_MAP_READ_BIT);
-	cout << "counter value = " << *ptr << endl;
-	glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
 	// Print time
 	uint endTime = getEpochTime();
 	cout << "currentIteration : " << currentIteration << "   -   " << "elapsed time : " << endTime - startTime << " ms" << endl;
-	delete[] flattenedRules;
 
 	// New iteration if collapsed a tile
 	for (int i = 0; i < collapsedTiles.size(); i++)
@@ -441,14 +370,18 @@ void runComputeEntropyProgram()
 	if (currentIteration % 2 == 0)
 	{
 		glBindImageTexture(1, computeTex1, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-		glBindImageTexture(2, computeTex2, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 	}
 	else
 	{
 		glBindImageTexture(1, computeTex2, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-		glBindImageTexture(2, computeTex1, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 	}
 	
+	// Atomic Counter
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, minEntropyBuffer);
+	GLuint atomicCounter = TILE_VALUES;
+	glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &atomicCounter);
+	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, minEntropyBuffer);
+
 	// Run compute shader
 	glUseProgram(computeEntropyProgram);
 	
@@ -457,9 +390,40 @@ void runComputeEntropyProgram()
 	
 	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+}
+
+void runChooseTileValueProgram()
+{
+	// Set input and output textures
+	if (currentIteration % 2 == 0)
+	{
+		glBindImageTexture(1, computeTex1, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+	}
+	else
+	{
+		glBindImageTexture(1, computeTex2, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+	}
+
+	// Buffers
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, minEntropyCellsBuffer);
+	ivec2 minEntropyCells = ivec2(-1,-1);
+	glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &minEntropyCells);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, minEntropyCellsBuffer);
+
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, minEntropyCellsAmountBuffer);
+	GLuint minEntropyCellsAmount = 0;
+	glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &minEntropyCellsAmount);
+	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 2, minEntropyCellsAmountBuffer);
+
 	
-	// Save the new iteration
-	entropyVector = getTextureVector(entropyTex);
+	// Run compute shader
+	glUseProgram(chooseTileValueProgram);
+
+	// Send uniform values to compute shader
+	glUniform1ui(glGetUniformLocation(chooseTileValueProgram, "TILE_VALUES"), TILE_VALUES);
+
+	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 
 void runOneIteration()
@@ -469,41 +433,20 @@ void runOneIteration()
 	// Find entropy values
 	runComputeEntropyProgram();
 
-	// Find minimum entropy
-	GLuint minEntropy = TILE_VALUES + 1;
+	runChooseTileValueProgram();
 
-	for (int i = 0; i < COMPUTE_WIDTH * COMPUTE_HEIGHT; i++)
-	{
-		if (minEntropy > entropyVector[i] && entropyVector[i] > 1)
-		{
-			minEntropy = entropyVector[i];
-		}
-	}
+	// atomic
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, minEntropyCellsAmountBuffer);
+	GLuint* ptr = (GLuint*)glMapBufferRange(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), GL_MAP_READ_BIT);
+	minEntropyCellsAmount = *ptr;
+	cout << "counter value = " << minEntropyCellsAmount << endl;
+	glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
-	// Get all cells with minimum entropy, and randomly choose one
-	vector<vec2> minCoords;
-	for (int i = 0; i < COMPUTE_WIDTH * COMPUTE_HEIGHT; i++)
-	{
-		GLuint cellValue = textureVector[i];
-		GLuint entropy = entropyVector[i];
-		if (entropy == minEntropy)
-		{
-			minCoords.push_back(vecToMatrixCoords(i));
-		}
-	}
+	uint endTime = getEpochTime();
+	cout << "elapsed time for choosing cell : " << endTime - startTime << " ms" << endl;
 
-	if (minCoords.size() != 0)
-	{
-		// Choose random cell
-		int r = rand() % minCoords.size();
-		vec2 chosenCoords = minCoords[r];
-
-		uint endTime = getEpochTime();
-		cout << "elapsed time for choosing cell : " << endTime - startTime << " ms" << endl;
-
-		// Collapse cell
-		computeNext(chosenCoords);
-	}
+	computeNext();
 }
 
 void runWFC()
@@ -522,7 +465,7 @@ void runWFC()
 			cout << "elapsed time for rendering : " << endTime - startTime << " ms" << endl;
 		}
 	
-		if (uncollapsedAmount() == 0)
+		if (minEntropyCellsAmount == 0)
 		{
 			break;
 		}
