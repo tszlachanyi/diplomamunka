@@ -26,10 +26,17 @@ int main()
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
-		cout << "Failed to initialize OpenGL context" << endl;
+		cout << "Failed to initialize OpenGL context" << "\n";
 	}
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
+	// Imgui init
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGui::StyleColorsDark();
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init("#version 460");
 
 	// VAO, VBO, EBO
 	glCreateVertexArrays(1, &VAO);
@@ -91,10 +98,18 @@ int main()
 	// Main Loop
 	while (!glfwWindowShouldClose(window))
 	{
+		
 		glfwGetCursorPos(window, &mousexpos, &mouseypos);
 		mouseypos = SCREEN_WIDTH - mouseypos;
 		Render();
+
+		
 	}
+
+	// Delete
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
 
 	glfwDestroyWindow(window);
 	glfwTerminate();

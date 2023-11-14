@@ -18,6 +18,7 @@ void main()
 	uint entropy = imageLoad(entropyImage, pixelCoords)[0];
 	uint minEntropy = atomicCounter(minCounter);
 
+
 	if (entropy == minEntropy)
 	{
 		uint i = atomicCounterIncrement(minEntropyCellsAmount);

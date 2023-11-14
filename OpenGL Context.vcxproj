@@ -129,6 +129,7 @@
       <ConformanceMode>true</ConformanceMode>
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -155,11 +156,27 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="glad.c" />
+    <ClCompile Include="libraries\include\imgui\imgui.cpp" />
+    <ClCompile Include="libraries\include\imgui\imgui_demo.cpp" />
+    <ClCompile Include="libraries\include\imgui\imgui_draw.cpp" />
+    <ClCompile Include="libraries\include\imgui\imgui_impl_glfw.cpp" />
+    <ClCompile Include="libraries\include\imgui\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="libraries\include\imgui\imgui_tables.cpp" />
+    <ClCompile Include="libraries\include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="functions.h" />
     <ClInclude Include="header.h" />
+    <ClInclude Include="libraries\include\imgui\imconfig.h" />
+    <ClInclude Include="libraries\include\imgui\imgui.h" />
+    <ClInclude Include="libraries\include\imgui\imgui_impl_glfw.h" />
+    <ClInclude Include="libraries\include\imgui\imgui_impl_opengl3.h" />
+    <ClInclude Include="libraries\include\imgui\imgui_impl_opengl3_loader.h" />
+    <ClInclude Include="libraries\include\imgui\imgui_internal.h" />
+    <ClInclude Include="libraries\include\imgui\imstb_rectpack.h" />
+    <ClInclude Include="libraries\include\imgui\imstb_textedit.h" />
+    <ClInclude Include="libraries\include\imgui\imstb_truetype.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="chooseTileValueShader.comp" />

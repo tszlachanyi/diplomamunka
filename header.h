@@ -13,10 +13,13 @@
 #include <array>
 #include <cmath>
 
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_opengl3.h"
+#include "imgui/imgui_impl_glfw.h"
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 #include "glm/glm.hpp"
-// #include "imgui/imgui_impl_opengl3_loader.h"
+
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
@@ -31,8 +34,8 @@ const unsigned short OPENGL_MINOR_VERSION = 6;
 const unsigned int SCREEN_WIDTH = 1024;
 const unsigned int SCREEN_HEIGHT = 1024;
 
-const unsigned int COMPUTE_WIDTH = 16;
-const unsigned int COMPUTE_HEIGHT = 16;
+const unsigned int COMPUTE_WIDTH = 256;
+const unsigned int COMPUTE_HEIGHT = 256;
 
 const unsigned int MAXIMUM_RULES = 100;
 const unsigned int TILE_VALUES = 4;
@@ -43,6 +46,7 @@ const bool DIVIDE_CELLS = true;
 const unsigned int CELL_DIVISION = ceil(sqrt(TILE_VALUES));
 
 const bool RENDER_DURING_WFC = true;
+bool LOG_ELAPSED_TIMES = false;
 
 const bool COLOR_FROM_TEXTURE = true;
 
@@ -53,6 +57,9 @@ bool vSync = false;
 GLuint computeTex2;
 GLuint computeTex1;
 GLuint entropyTex;
+
+GLuint* activeTexture = &computeTex1;
+GLuint* inactiveTexture = &computeTex2;
 
 vector<GLuint> loadedTextures;
 vector<const char*> textureLocations = {"textures/texture1.png", "textures/texture2.png"  ,"textures/texture3.png" ,"textures/texture4.png", "textures/texture5.png","textures/texture6.png","textures/texture7.png","textures/texture8.png","textures/texture9.png"};
@@ -184,7 +191,7 @@ GLuint loadShader(GLenum _shaderType, const char* _fileName)
 		std::vector<char> VertexShaderErrorMessage(infoLogLength);
 		glGetShaderInfoLog(loadedShader, infoLogLength, nullptr, &VertexShaderErrorMessage[0]);
 
-		std::cerr << "[glCompileShader] Shader compilation error in " << _fileName << ":\n" << &VertexShaderErrorMessage[0] << std::endl;
+		std::cerr << "[glCompileShader] Shader compilation error in " << _fileName << ":\n" << &VertexShaderErrorMessage[0] << "\n";
 	}
 
 	return loadedShader;

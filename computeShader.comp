@@ -12,11 +12,13 @@ uint[4][4][3] allRules =
    {{0,1,15-8} , {1,0,15-8} , {0,-1,15-8}, {-1,0,15-8}},
 };
 
-uint rulesAmount = 4;
 uint rules[4][3];
+uint rulesAmount = 4;
 
 uniform uint userChosenValue;
 uniform ivec2 userChosenCoords;
+uniform bool manualCoords;
+uniform bool manualValue;
 uniform float random1;
 uniform float random2;
 uniform uint TILE_VALUES;
@@ -27,6 +29,8 @@ uint chosenCellOldValue;
 uint chosenCellIndex;
 uint[MAXIMUM_TILE_VALUES] tileArray;
 uint entropy;
+uint chosenTileIndex;
+uint chosenValue;
 
 ivec2 chosenCoords; // Cell choosen to get collapsed
 ivec2 currentCoords; // Current cell
@@ -60,33 +64,43 @@ void possibleTiles(in uint number, out uint[MAXIMUM_TILE_VALUES] tileArray, out 
 
 void main()
 {
+	
 	// Current Value
 	currentCoords = ivec2(gl_GlobalInvocationID.xy);
 	cellValue = imageLoad(inputImage, currentCoords)[0];
 
 	// Chosen Cell
-	chosenCellIndex = uint(floor(random1 * atomicCounter(minEntropyCellsAmount)));
-	chosenCoords = minEntropyCells[chosenCellIndex];
+	if (manualCoords)
+	{
+		chosenCoords = userChosenCoords;
+	}
+	else
+	{
+		chosenCellIndex = uint(floor(random1 * atomicCounter(minEntropyCellsAmount)));
+		chosenCoords = minEntropyCells[chosenCellIndex];
+	}
+	
 
-	// Chosen Value
-	chosenCellOldValue = imageLoad(inputImage, chosenCoords)[0];
-	possibleTiles(chosenCellOldValue, tileArray, entropy);
-	uint chosenTileIndex = tileArray[uint(floor(random2 * entropy))];
-	uint chosenValue = uint(pow(2, chosenTileIndex));
+	// Chosen Value 
+	if (manualValue)
+	{
+		chosenValue = userChosenValue;
+		chosenTileIndex = uint(log2(chosenValue));
+	}
+	else
+	{
+		chosenCellOldValue = imageLoad(inputImage, chosenCoords)[0];
+		possibleTiles(chosenCellOldValue, tileArray, entropy);
+		chosenTileIndex = tileArray[uint(floor(random2 * entropy))];
+		chosenValue = uint(pow(2, chosenTileIndex));
+	}
 
 	rules = allRules[chosenTileIndex];
 
 	// Calculate output value
 	if (currentCoords == chosenCoords)		// Give the chosen value to the chosen cell
 	{		
-		if (userChosenValue != 0)
-		{
-			cellValue = userChosenValue;
-		}
-		else
-		{
-			cellValue = chosenValue;
-		}
+		cellValue = chosenValue;
 	}
 	else	// Use rules on other cells
 	{
