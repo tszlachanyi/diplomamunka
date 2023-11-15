@@ -34,23 +34,24 @@ const unsigned short OPENGL_MINOR_VERSION = 6;
 const unsigned int SCREEN_WIDTH = 1024;
 const unsigned int SCREEN_HEIGHT = 1024;
 
-const unsigned int COMPUTE_WIDTH = 256;
-const unsigned int COMPUTE_HEIGHT = 256;
+int COMPUTE_WIDTH = 32;
+int COMPUTE_HEIGHT = 32;
 
 const unsigned int MAXIMUM_RULES = 100;
 const unsigned int TILE_VALUES = 4;
 
-const unsigned int GRID_THICKNESS = 2;
+int GRID_THICKNESS = 2;
 
-const bool DIVIDE_CELLS = true;
-const unsigned int CELL_DIVISION = ceil(sqrt(TILE_VALUES));
+bool DIVIDE_CELLS = true;
+unsigned int CELL_DIVISION = ceil(sqrt(TILE_VALUES));
 
-const bool RENDER_DURING_WFC = true;
+bool RENDER_DURING_WFC = true;
 bool LOG_ELAPSED_TIMES = false;
+bool IMGUI = true;
 
-const bool COLOR_FROM_TEXTURE = true;
+bool COLOR_FROM_TEXTURE = true;
 
-const bool SUDOKU = false;
+bool SUDOKU = false;
 
 bool vSync = false;
 
@@ -74,11 +75,9 @@ GLuint sudokuComputeShader;
 GLuint minEntropyBuffer;
 GLuint minEntropyCellsBuffer;
 GLuint minEntropyCellsAmountBuffer;
-
-array<GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> textureVector;
-array<GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> entropyVector;
-vector<vec2> uncollapsed;
 GLuint minEntropyCellsAmount;
+
+vector <GLuint> textureVector;
 
 GLuint screenShaderProgram;
 GLuint computeProgram;

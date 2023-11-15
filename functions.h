@@ -1,5 +1,11 @@
 ﻿#include "header.h"
 
+void runOneIteration();
+void runWFC();
+
+void initOpenGL();
+void initScreen();
+
 // Flatten vector of vectors into vector
 template<typename T>
 vector<T> flatten(vector<vector<T>> const& vec)
@@ -186,20 +192,6 @@ vector<GLuint> possibleTiles(GLuint number)
 	return v;
 }
 
-// Get the amount of uncollapsed cells
-GLuint uncollapsedAmount()
-{
-	GLuint n = 0;
-	for (int i = 0; i < COMPUTE_HEIGHT * COMPUTE_WIDTH; i++)
-	{	
-		if (entropyVector[i] > 1)
-		{
-			n++;
-		}
-	}
-	return n;
-}
-
 // Get which tile the 2bit value corresponds to (assuming there is only one possible value)
 int tileValue(GLuint number)
 {
@@ -219,17 +211,17 @@ int tileValue(GLuint number)
 }
 
 // Get vector format of a GL_R32UI texture
-array <GLuint, COMPUTE_WIDTH * COMPUTE_HEIGHT> getTextureVector(GLuint texture)
+vector <GLuint> getTextureVector(GLuint texture)
 {
 	uint startTime = getEpochTime();
-	array <GLuint, COMPUTE_WIDTH * COMPUTE_HEIGHT> vector;
+	vector <GLuint> vector (COMPUTE_WIDTH * COMPUTE_HEIGHT, 0);
 
 	glBindTexture(GL_TEXTURE_2D, texture);
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &vector);
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &vector[0]);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	uint endTime = getEpochTime();
-	cout << "elapsed time for getting texture vector :  " << endTime - startTime << " ms" << "\n";
+	if (LOG_ELAPSED_TIMES) { cout << "elapsed time for getting texture vector :  " << endTime - startTime << " ms" << "\n"; }
 	return vector;
 }
 
@@ -252,13 +244,29 @@ char* concatenate(const char* c, int i)
 	return result;
 }
 
+// Initialize the screen with a blank texture
+void initScreen()
+{
+	vector <int> arr(COMPUTE_WIDTH * COMPUTE_HEIGHT, pow(2, TILE_VALUES) - 1);
+
+	currentIteration = 0;
+	glTextureSubImage2D(computeTex1, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &arr[0]);
+
+	activeTexture = &computeTex1;
+	inactiveTexture = &computeTex2;
+}
+
 void Render()
 {
-	//// Tell OpenGL a new frame is about to begin
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
+	//// Imgui init
+	if (IMGUI)
+	{
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+	}
 
+	// Use compute program
 	glUseProgram(screenShaderProgram);
 
 	// Get the current computeTex to render
@@ -287,34 +295,55 @@ void Render()
 	glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_INT, 0);
 
 	//// ImGUI
-	ImGui::Begin("ImGUI window");
-	ImGui::SetWindowSize(ImVec2(500,200));
-	ImGui::Text("HELLO!");
-	ImGui::Checkbox("LOG ELAPSED TIMES", &LOG_ELAPSED_TIMES);
-	ImGui::End();
-	ImGui::Render();
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+	bool runwfc = false;
+	if (IMGUI)
+	{
+		ImGui::Begin("ImGUI window");
+		ImGui::SetWindowSize(ImVec2(500, 300));
+		ImGui::Checkbox("LOG ELAPSED TIMES", &LOG_ELAPSED_TIMES);
+		ImGui::Checkbox("DIVIDE CELLS", &DIVIDE_CELLS);
+		ImGui::Checkbox("COLOR FROM TEXTURE", &COLOR_FROM_TEXTURE);
+		ImGui::Checkbox("SUDOKU", &SUDOKU);
+		ImGui::Checkbox("RENDER DURING WFC", &RENDER_DURING_WFC);
+		ImGui::SliderInt("GRID THICKNESS", &GRID_THICKNESS, 0, 10);
+		if (ImGui::SliderInt("COMPUTE WIDTH", &COMPUTE_WIDTH, 1, 1024))
+		{
+			initOpenGL();
+			initScreen();
+		}
+		if (ImGui::SliderInt("COMPUTE HEIGHT", &COMPUTE_HEIGHT, 1, 1024))
+		{
+			initOpenGL();
+			initScreen();
+		}
+		
+		
+		if (ImGui::Button("Run Whole Algorithm (<-)"))
+		{
+			runwfc = true;
+			
+		}
+		if (ImGui::Button("Run One Iteration (->)"))
+		{
+			runOneIteration();
+		}
+		if (ImGui::Button("Restart (r)"))
+		{
+			initScreen();
+		}
+		ImGui::End();
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+	}
+	
 
 	glfwSwapBuffers(window);
 	glfwPollEvents();
-}
 
-// Initialize the screen with a blank texture
-void initScreen()
-{
-	int v = pow(2, TILE_VALUES) - 1;
-
-	array <GLuint, COMPUTE_WIDTH* COMPUTE_HEIGHT> arr;
-	for (int i = 0; i < COMPUTE_WIDTH * COMPUTE_HEIGHT; i++) {
-		arr[i] = v;
+	if (runwfc)
+	{
+		runWFC();
 	}
-
-	currentIteration = 0;
-	copyArray(arr, textureVector);
-	glTextureSubImage2D(computeTex1, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &textureVector);
-
-	activeTexture = &computeTex1;
-	inactiveTexture = &computeTex2;
 }
 
 void swap(GLuint* a, GLuint* b)
@@ -535,6 +564,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 		if (button == GLFW_MOUSE_BUTTON_RIGHT)
 		{
 			cout << " (" << coords.x << " , " << coords.y << ")  ";
+			textureVector = getTextureVector(*activeTexture);
 			bitset<TILE_VALUES> x(textureVector[matrixToVecCoords(coords)]);
 			cout << x << "\n";
 			//cout << possibleTiles((textureVector[matrixToVecCoords(coords)])).size() << "\n";
@@ -550,4 +580,41 @@ static void cursor_position_callback(GLFWwindow* window, double xpos, double ypo
 	//vec2 coords = convertCoords(vec2(mousexpos, mouseypos), vec2(SCREEN_WIDTH, SCREEN_HEIGHT), vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT));
 	//cout << coords.x << " , " << coords.y << "\n";
 	;
+}
+
+void initOpenGL()
+{
+	// Buffers
+	glGenBuffers(1, &minEntropyBuffer);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, minEntropyBuffer);
+	glBufferStorage(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_MAP_READ_BIT);
+
+	glGenBuffers(1, &minEntropyCellsBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, minEntropyCellsBuffer);
+	glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(ivec2) * COMPUTE_WIDTH * COMPUTE_HEIGHT, nullptr, GL_MAP_READ_BIT);
+
+	glGenBuffers(1, &minEntropyCellsAmountBuffer);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, minEntropyCellsAmountBuffer);
+	glBufferStorage(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_MAP_READ_BIT);
+
+
+	// Textures
+	initTexture(&computeTex1, 1, GL_READ_WRITE, GL_R32UI);
+	initTexture(&computeTex2, 2, GL_READ_WRITE, GL_R32UI);
+	initTexture(&entropyTex, 3, GL_READ_WRITE, GL_R32UI);
+
+	for (int i = 0; i < textureLocations.size(); i++)
+	{
+		loadedTextures.push_back(0);
+		loadTextureFromFile(&loadedTextures[i], textureLocations[i]);
+	}
+
+
+	// Shaders, programs
+	initShaderProgram({ GL_COMPUTE_SHADER }, { "computeShader.comp" }, { &computeShader }, &computeProgram);
+	initShaderProgram({ GL_COMPUTE_SHADER }, { "computeEntropyShader.comp" }, { &computeEntropyShader }, &computeEntropyProgram);
+	initShaderProgram({ GL_COMPUTE_SHADER }, { "chooseTileValueShader.comp" }, { &chooseTileValueShader }, &chooseTileValueProgram);
+	initShaderProgram({ GL_COMPUTE_SHADER }, { "sudokuComputeShader.comp" }, { &sudokuComputeShader }, &sudokuComputeProgram);
+	initShaderProgram({ GL_VERTEX_SHADER , GL_FRAGMENT_SHADER }, { "vertexShader.vert","fragmentShader.frag" }, { &screenVertexShader,&screenFragmentShader }, &screenShaderProgram);
+
 }

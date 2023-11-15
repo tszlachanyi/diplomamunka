@@ -218,7 +218,7 @@ void main()
     xgap = float(SCREEN_WIDTH) / float(COMPUTE_WIDTH);
     ygap = float(SCREEN_HEIGHT) / float(COMPUTE_HEIGHT);
 
-	if (gridThickness > mod(gl_FragCoord.x, xgap) || gridThickness > mod(gl_FragCoord.y, ygap) )
+	if (gridThickness > mod(gl_FragCoord.x, xgap) || gridThickness > abs(mod(gl_FragCoord.x, xgap) - xgap) || gridThickness > mod(gl_FragCoord.y, ygap) || gridThickness > abs(mod(gl_FragCoord.y, ygap) - ygap))
     {
         FragColor = vec4(0, 0, 0, 1.0);
     }

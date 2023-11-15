@@ -58,38 +58,8 @@ int main()
 	glVertexArrayElementBuffer(VAO, EBO);
 
 
-	// Buffers
-	glGenBuffers(1, &minEntropyBuffer);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, minEntropyBuffer);
-	glBufferStorage(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_MAP_READ_BIT);
-
-	glGenBuffers(1, &minEntropyCellsBuffer);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, minEntropyCellsBuffer);
-	glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(ivec2) * COMPUTE_WIDTH * COMPUTE_HEIGHT, nullptr, GL_MAP_READ_BIT);
-
-	glGenBuffers(1, &minEntropyCellsAmountBuffer);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, minEntropyCellsAmountBuffer);
-	glBufferStorage(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_MAP_READ_BIT);
-
-	
-	// Textures
-	initTexture(&computeTex1, 1, GL_READ_WRITE, GL_R32UI);
-	initTexture(&computeTex2, 2, GL_READ_WRITE, GL_R32UI);
-	initTexture(&entropyTex, 3, GL_READ_WRITE, GL_R32UI);
-
-	for (int i = 0; i < textureLocations.size(); i++)
-	{
-		loadedTextures.push_back(0);
-		loadTextureFromFile(&loadedTextures[i], textureLocations[i]);
-	}
-	
-
-	// Shaders, programs
-	initShaderProgram({GL_COMPUTE_SHADER}, {"computeShader.comp"}, {&computeShader}, &computeProgram);
-	initShaderProgram({GL_COMPUTE_SHADER}, {"computeEntropyShader.comp"}, {&computeEntropyShader}, &computeEntropyProgram);
-	initShaderProgram({ GL_COMPUTE_SHADER }, { "chooseTileValueShader.comp" }, { &chooseTileValueShader }, &chooseTileValueProgram);
-	initShaderProgram({ GL_COMPUTE_SHADER }, { "sudokuComputeShader.comp" }, { &sudokuComputeShader }, &sudokuComputeProgram);
-	initShaderProgram({GL_VERTEX_SHADER , GL_FRAGMENT_SHADER}, {"vertexShader.vert","fragmentShader.frag"}, {&screenVertexShader,&screenFragmentShader }, &screenShaderProgram);
+	// Init opengl textures, buffers, shaders, programs
+	initOpenGL();
 	
 	// Load initial position
 	initScreen();
