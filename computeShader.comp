@@ -35,12 +35,19 @@ uint chosenValue;
 ivec2 chosenCoords; // Cell choosen to get collapsed
 ivec2 currentCoords; // Current cell
 
+// Buffers
 layout(binding = 0) uniform atomic_uint minCounter;
 layout(binding = 1) buffer ssbo
 {
     ivec2 minEntropyCells[];
 };
 layout(binding = 2) uniform atomic_uint minEntropyCellsAmount;
+
+layout(binding = 3) buffer collapsedCellsBuffer
+{
+    ivec2 collapsedCells[];
+};
+layout(binding = 4) uniform atomic_uint collapsedCellsAmount;
 
 uint nthBit(uint number, uint n)
 {
@@ -104,12 +111,26 @@ void main()
 	}
 	else	// Use rules on other cells
 	{
+		
+		uint oldEntropy;
+		possibleTiles(cellValue, tileArray, oldEntropy);
+
 		for (int i = 0; i < rulesAmount; i++)
 		{
 			if (currentCoords == chosenCoords + ivec2(rules[i][0], rules[i][1]))
 			{
 				cellValue = cellValue &  rules[i][2];
 			}
+		}
+
+		// If entropy changed to 1, then add to collapsedCells array for reiteration
+		uint newEntropy;
+		possibleTiles(cellValue, tileArray, newEntropy);
+		
+		if (oldEntropy != 1 && newEntropy == 1)
+		{
+			uint i = atomicCounterIncrement(collapsedCellsAmount);
+			collapsedCells[i] = currentCoords;
 		}
 	}
 

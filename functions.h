@@ -1,11 +1,5 @@
 ﻿#include "header.h"
 
-void runOneIteration();
-void runWFC();
-
-void initOpenGL();
-void initScreen();
-
 // Flatten vector of vectors into vector
 template<typename T>
 vector<T> flatten(vector<vector<T>> const& vec)
@@ -346,6 +340,17 @@ void Render()
 	}
 }
 
+template <typename T>
+T* readBuffer(GLuint buffer, GLuint type, GLsizeiptr size)
+{
+	glBindBuffer(type, buffer);
+	T* ptr = (T*)glMapBufferRange(type, 0, size, GL_MAP_READ_BIT);
+	glUnmapBuffer(type);
+	glBindBuffer(type, 0);
+	return ptr;
+}
+
+// Swap two pointers
 void swap(GLuint* a, GLuint* b)
 {
 	GLuint temp = *a;
@@ -362,6 +367,16 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 	glBindImageTexture(1, *activeTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 	glBindImageTexture(2, *inactiveTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 	
+	// Buffers
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, collapsedCellsBuffer);
+	ivec2 collapsedCells = ivec2(-1, -1);
+	glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &collapsedCells);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, collapsedCellsBuffer);
+
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, collapsedCellsAmountBuffer);
+	GLuint collapsedCellsAmount = 0;
+	glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &collapsedCellsAmount);
+	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 4, collapsedCellsAmountBuffer);
 	
 	// Use compute shader
 	if (!SUDOKU)
@@ -390,13 +405,25 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 	currentIteration++;
-	//swap(&activeTexture, &inactiveTexture);
-
 	swap(activeTexture, inactiveTexture);
 
 	// Print time
 	uint endTime = getEpochTime();
 	if (LOG_ELAPSED_TIMES) { cout << "currentIteration : " << currentIteration << "   -   " << "elapsed time : " << endTime - startTime << " ms \n"; }
+
+	// Read buffers
+	collapsedCellsAmount = *(readBuffer<GLuint>(collapsedCellsAmountBuffer, GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint)));
+
+	if (collapsedCellsAmount > 0)
+	{
+		ivec2* collapsed = readBuffer<ivec2>(collapsedCellsBuffer, GL_SHADER_STORAGE_BUFFER, sizeof(ivec2) * collapsedCellsAmount);
+		for (int i = 0; i < collapsedCellsAmount; i++)
+		{
+			computeNext(collapsed[i], 0, true, false);
+		}
+		
+	}
+	
 }
 
 void runComputeEntropyProgram()
@@ -457,12 +484,8 @@ void runOneIteration()
 
 	runChooseTileValueProgram();
 
-	// atomic
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, minEntropyCellsAmountBuffer);
-	GLuint* ptr = (GLuint*)glMapBufferRange(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), GL_MAP_READ_BIT);
-	minEntropyCellsAmount = *ptr;
-	glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
+	// Read atomic minEntropyCellsAmount counter
+	minEntropyCellsAmount = *(readBuffer <GLuint>(minEntropyCellsAmountBuffer, GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint)));
 
 	uint endTime = getEpochTime();
 	
@@ -501,30 +524,36 @@ void runWFC()
 // Input
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+	ImGuiIO& io = ImGui::GetIO();
+	if (!io.WantCaptureKeyboard)
 	{
-		glfwSetWindowShouldClose(window, true);
-	}
-	if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
-	{
-		runOneIteration();
-		
-	}
-	if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
-	{
-		runWFC();
+		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+		{
+			glfwSetWindowShouldClose(window, true);
+		}
+		if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+		{
+			runOneIteration();
 
+		}
+		if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+		{
+			runWFC();
+
+		}
+		if (key == GLFW_KEY_R && action == GLFW_PRESS)
+		{
+			initScreen();
+		}
 	}
-	if (key == GLFW_KEY_R && action == GLFW_PRESS)
-	{
-		initScreen();
-	}
+	
 
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-	if (action == GLFW_PRESS)
+	ImGuiIO& io = ImGui::GetIO();
+	if (action == GLFW_PRESS && !io.WantCaptureMouse)
 	{
 		vec2 mouseCoords = vec2(mousexpos, mouseypos);
 		vec2 coords = convertCoords(mouseCoords, vec2(SCREEN_WIDTH, SCREEN_HEIGHT), vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT));
@@ -597,7 +626,15 @@ void initOpenGL()
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, minEntropyCellsAmountBuffer);
 	glBufferStorage(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_MAP_READ_BIT);
 
+	glGenBuffers(1, &collapsedCellsBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, collapsedCellsBuffer);
+	glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(ivec2) * COMPUTE_WIDTH * COMPUTE_HEIGHT, nullptr, GL_MAP_READ_BIT);
 
+	glGenBuffers(1, &collapsedCellsAmountBuffer);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, collapsedCellsAmountBuffer);
+	glBufferStorage(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_MAP_READ_BIT);
+
+	
 	// Textures
 	initTexture(&computeTex1, 1, GL_READ_WRITE, GL_R32UI);
 	initTexture(&computeTex2, 2, GL_READ_WRITE, GL_R32UI);

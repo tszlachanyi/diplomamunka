@@ -1,6 +1,5 @@
 // TODO :
 
-
 #include <iostream>
 #include <chrono>
 #include <algorithm>
@@ -19,7 +18,6 @@
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 #include "glm/glm.hpp"
-
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
@@ -76,6 +74,8 @@ GLuint minEntropyBuffer;
 GLuint minEntropyCellsBuffer;
 GLuint minEntropyCellsAmountBuffer;
 GLuint minEntropyCellsAmount;
+GLuint collapsedCellsBuffer;
+GLuint collapsedCellsAmountBuffer;
 
 vector <GLuint> textureVector;
 
@@ -91,6 +91,11 @@ GLint currentIteration = 0;
 
 double mousexpos, mouseypos;
 
+void runOneIteration();
+void runWFC();
+
+void initOpenGL();
+void initScreen();
 
 // example for assymetric rules
 //vector<vector<vector<GLint>>> rules =
