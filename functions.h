@@ -1,32 +1,5 @@
 ﻿#include "header.h"
 
-// Flatten vector of vectors into vector
-template<typename T>
-vector<T> flatten(vector<vector<T>> const& vec)
-{
-	vector<T> flattened;
-	for (auto const& v : vec) {
-		flattened.insert(flattened.end(), v.begin(), v.end());
-	}
-	return flattened;
-}
-
-template <typename T, std::size_t N>
-void copyArray(const std::array<T, N>& source, std::array<T, N>& destination) {
-	for (std::size_t i = 0; i < N; ++i) {
-		destination[i] = source[i];
-	}
-}
-
-template <typename T, std::size_t N>
-void printArray(const std::array<T, N>& arr) {
-	std::cout << "[";
-	for (const T& element : arr) {
-		std::cout << element << " ";
-	}
-	std::cout << "]" << "\n";
-}
-
 template <typename T>
 void printVector(vector<T> vector)
 {
@@ -119,8 +92,8 @@ vec2 convertCoords(vec2 coords, vec2 oldSize, vec2 newSize)
 	return vec2(x, y);
 }
 
-// Get the tile value of the tile clicked on the divided grid
-GLuint getTileValueInDividedGrid(vec2 coords)
+// Get the tile number of the tile clicked on the divided grid
+GLuint getTileNumberInDividedGrid(vec2 coords)
 {
 	ivec2 pixelCoords = convertCoords(coords, vec2(SCREEN_WIDTH, SCREEN_HEIGHT), vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT));
 	ivec2 dividedPixelCoords = convertCoords(coords, vec2(SCREEN_WIDTH, SCREEN_HEIGHT), vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT) * vec2(CELL_DIVISION));
@@ -137,25 +110,10 @@ int matrixToVecCoords(vec2 coords)
 	return int((COMPUTE_WIDTH * coords.y) + (coords.x));
 }
 
-// Converts from matrix coordinate to texture coordinate of a pixel
-vec2 vecToMatrixCoords(int coords)
-{
-	int y = floor(coords / COMPUTE_WIDTH);
-	int x = coords - y * COMPUTE_WIDTH;
-	return vec2(x, y);
-}
-
 // Checks if a coordinate is valid (inside the grid)
 bool isInsideGrid(vec2 coords)
 {
-	if (coords.x < COMPUTE_WIDTH && coords.x >= 0 && coords.y < COMPUTE_HEIGHT && coords.y >= 0)
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	return (coords.x < COMPUTE_WIDTH && coords.x >= 0 && coords.y < COMPUTE_HEIGHT && coords.y >= 0);
 }
 
 // Get current epoch time in milliseconds
@@ -184,24 +142,6 @@ vector<GLuint> possibleTiles(GLuint number)
 		}
 	}
 	return v;
-}
-
-// Get which tile the 2bit value corresponds to (assuming there is only one possible value)
-int tileValue(GLuint number)
-{
-	int n = 999;
-	if (possibleTiles(number).size() == 1)
-	{
-		for (int i = 0; i < TILE_VALUES; i++)
-		{
-			if (number >> i == 1)
-			{
-				n = i;
-			}
-		}
-	}
-	
-	return n;
 }
 
 // Get vector format of a GL_R32UI texture
@@ -310,6 +250,12 @@ void Render()
 			initOpenGL();
 			initScreen();
 		}
+		if (ImGui::SliderInt("TILE VALUES", &TILE_VALUES, 1, 32))
+		{
+			CELL_DIVISION = ceil(sqrt(TILE_VALUES));
+			initOpenGL();
+			initScreen();
+		}
 		
 		
 		if (ImGui::Button("Run Whole Algorithm (<-)"))
@@ -340,6 +286,7 @@ void Render()
 	}
 }
 
+// Read data to CPU from an opengl buffer
 template <typename T>
 T* readBuffer(GLuint buffer, GLuint type, GLsizeiptr size)
 {
@@ -379,14 +326,7 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 4, collapsedCellsAmountBuffer);
 	
 	// Use compute shader
-	if (!SUDOKU)
-	{
-		glUseProgram(computeProgram);
-	}
-	else
-	{
-		glUseProgram(sudokuComputeProgram);
-	}
+	glUseProgram(computeProgram);
 	
 	// Send uniform values to compute shader
 	float random1 = ((double)rand()) / RAND_MAX;
@@ -399,6 +339,7 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 	glUniform1f(glGetUniformLocation(computeProgram, "random1"), random1);
 	glUniform1f(glGetUniformLocation(computeProgram, "random2"), random2);
 	glUniform1ui(glGetUniformLocation(computeProgram, "TILE_VALUES"), TILE_VALUES);
+	glUniform1ui(glGetUniformLocation(computeProgram, "SUDOKU"), SUDOKU);
 
 	// Run compute shader
 	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
@@ -575,7 +516,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 					}
 					else
 					{
-						GLuint tileNumber = getTileValueInDividedGrid(mouseCoords);
+						GLuint tileNumber = getTileNumberInDividedGrid(mouseCoords);
 						vector<GLuint> v = possibleTiles(currentValue);
 						if (find(v.begin(), v.end(), tileNumber) != v.end()) // If the chosen value is still a possible value for the cell, choose it 
 						{
@@ -594,8 +535,22 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 		{
 			cout << " (" << coords.x << " , " << coords.y << ")  ";
 			textureVector = getTextureVector(*activeTexture);
-			bitset<TILE_VALUES> x(textureVector[matrixToVecCoords(coords)]);
-			cout << x << "\n";
+
+			std::vector<bool> bits(TILE_VALUES);
+
+			int number = textureVector[matrixToVecCoords(coords)];
+
+			// Extract the bits from the integer and store them in the vector
+			for (int i = 0; i < TILE_VALUES; ++i) {
+				bits[i] = (number & (1 << i)) != 0;
+			}
+
+			// Print the bits
+			for (int i = TILE_VALUES - 1; i >= 0; --i) {
+				std::cout << bits[i];
+			}
+			std::cout << "\n";
+
 			//cout << possibleTiles((textureVector[matrixToVecCoords(coords)])).size() << "\n";
 
 		}
@@ -651,7 +606,6 @@ void initOpenGL()
 	initShaderProgram({ GL_COMPUTE_SHADER }, { "computeShader.comp" }, { &computeShader }, &computeProgram);
 	initShaderProgram({ GL_COMPUTE_SHADER }, { "computeEntropyShader.comp" }, { &computeEntropyShader }, &computeEntropyProgram);
 	initShaderProgram({ GL_COMPUTE_SHADER }, { "chooseTileValueShader.comp" }, { &chooseTileValueShader }, &chooseTileValueProgram);
-	initShaderProgram({ GL_COMPUTE_SHADER }, { "sudokuComputeShader.comp" }, { &sudokuComputeShader }, &sudokuComputeProgram);
 	initShaderProgram({ GL_VERTEX_SHADER , GL_FRAGMENT_SHADER }, { "vertexShader.vert","fragmentShader.frag" }, { &screenVertexShader,&screenFragmentShader }, &screenShaderProgram);
 
 }

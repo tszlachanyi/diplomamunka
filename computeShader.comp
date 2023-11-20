@@ -22,6 +22,7 @@ uniform bool manualValue;
 uniform float random1;
 uniform float random2;
 uniform uint TILE_VALUES;
+uniform bool SUDOKU;
 
 const uint MAXIMUM_TILE_VALUES = 32;
 uint cellValue;
@@ -65,6 +66,45 @@ void possibleTiles(in uint number, out uint[MAXIMUM_TILE_VALUES] tileArray, out 
 		{
 			tileArray[entropy]= i;
 			entropy += 1;
+		}
+	}
+}
+
+// Use Rules to collapse the cell
+void useRules()
+{
+	if(!SUDOKU) // Regular rules
+	{
+		for (int i = 0; i < rulesAmount; i++)
+			{
+				if (currentCoords == chosenCoords + ivec2(rules[i][0], rules[i][1]))
+				{
+					cellValue = cellValue &  rules[i][2];
+				}
+			}
+	}
+	else // Sudoku
+	{
+		int blockSize = 3;
+		ivec2 chosenBlockCoords = ivec2(vec2(chosenCoords) / vec2(blockSize));
+		ivec2 currentBlockCoords = ivec2(vec2(currentCoords) / vec2(blockSize));
+
+		// Same Column
+		if (currentCoords.x == chosenCoords.x)
+		{
+			cellValue = cellValue & (~chosenValue);
+		}
+
+		// Same Row
+		if (currentCoords.y == chosenCoords.y)
+		{
+			cellValue = cellValue & (~chosenValue);
+		}
+
+		// Same Block
+		if (chosenBlockCoords == currentBlockCoords)
+		{
+			cellValue = cellValue & (~chosenValue);
 		}
 	}
 }
@@ -115,13 +155,7 @@ void main()
 		uint oldEntropy;
 		possibleTiles(cellValue, tileArray, oldEntropy);
 
-		for (int i = 0; i < rulesAmount; i++)
-		{
-			if (currentCoords == chosenCoords + ivec2(rules[i][0], rules[i][1]))
-			{
-				cellValue = cellValue &  rules[i][2];
-			}
-		}
+		useRules();
 
 		// If entropy changed to 1, then add to collapsedCells array for reiteration
 		uint newEntropy;

@@ -32,11 +32,11 @@ const unsigned short OPENGL_MINOR_VERSION = 6;
 const unsigned int SCREEN_WIDTH = 1024;
 const unsigned int SCREEN_HEIGHT = 1024;
 
-int COMPUTE_WIDTH = 32;
-int COMPUTE_HEIGHT = 32;
+int COMPUTE_WIDTH = 9;
+int COMPUTE_HEIGHT = 9;
 
 const unsigned int MAXIMUM_RULES = 100;
-const unsigned int TILE_VALUES = 4;
+int TILE_VALUES = 9;
 
 int GRID_THICKNESS = 2;
 
@@ -49,7 +49,7 @@ bool IMGUI = true;
 
 bool COLOR_FROM_TEXTURE = true;
 
-bool SUDOKU = false;
+bool SUDOKU = true;
 
 bool vSync = false;
 
@@ -68,7 +68,6 @@ GLuint screenFragmentShader;
 GLuint computeShader;
 GLuint computeEntropyShader;
 GLuint chooseTileValueShader;
-GLuint sudokuComputeShader;
 
 GLuint minEntropyBuffer;
 GLuint minEntropyCellsBuffer;
@@ -83,7 +82,6 @@ GLuint screenShaderProgram;
 GLuint computeProgram;
 GLuint computeEntropyProgram;
 GLuint chooseTileValueProgram;
-GLuint sudokuComputeProgram;
 GLuint VAO, VBO, EBO;
 GLFWwindow* window;
 
