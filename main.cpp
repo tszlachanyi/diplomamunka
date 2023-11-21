@@ -57,13 +57,14 @@ int main()
 	glVertexArrayVertexBuffer(VAO, 0, VBO, 0, 5 * sizeof(GLfloat));
 	glVertexArrayElementBuffer(VAO, EBO);
 
-
+	
 	// Init opengl textures, buffers, shaders, programs
 	initOpenGL();
 	
 	// Load initial position
 	initScreen();
 
+	//getRulesFromTexture();
 
 	// Main Loop
 	while (!glfwWindowShouldClose(window))
@@ -72,6 +73,7 @@ int main()
 		glfwGetCursorPos(window, &mousexpos, &mouseypos);
 		mouseypos = SCREEN_WIDTH - mouseypos;
 		Render();
+		
 
 		
 	}

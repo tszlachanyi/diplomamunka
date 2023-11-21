@@ -316,8 +316,8 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 	
 	// Buffers
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, collapsedCellsBuffer);
-	ivec2 collapsedCells = ivec2(-1, -1);
-	glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &collapsedCells);
+	ivec2 collapsedCell = ivec2(-1, -1);
+	glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &collapsedCell);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, collapsedCellsBuffer);
 
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, collapsedCellsAmountBuffer);
@@ -360,9 +360,16 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 		ivec2* collapsed = readBuffer<ivec2>(collapsedCellsBuffer, GL_SHADER_STORAGE_BUFFER, sizeof(ivec2) * collapsedCellsAmount);
 		for (int i = 0; i < collapsedCellsAmount; i++)
 		{
-			computeNext(collapsed[i], 0, true, false);
+			collapsedCells.push_back(collapsed[i]);
 		}
-		
+	}
+
+	// Reiterate if needed
+	if (collapsedCells.size() > collapsedCellIndex)
+	{
+		//cout << "reiterated " << collapsedCells[collapsedCellIndex].x << "   " << collapsedCells[collapsedCellIndex].y << "\n";
+		collapsedCellIndex += 1;
+		computeNext(collapsedCells[collapsedCellIndex - 1], 0, true, false);
 	}
 	
 }
@@ -424,6 +431,7 @@ void runOneIteration()
 	runComputeEntropyProgram();
 
 	runChooseTileValueProgram();
+	
 
 	// Read atomic minEntropyCellsAmount counter
 	minEntropyCellsAmount = *(readBuffer <GLuint>(minEntropyCellsAmountBuffer, GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint)));
@@ -432,7 +440,11 @@ void runOneIteration()
 	
 	if (LOG_ELAPSED_TIMES) { cout << "elapsed time for choosing cell : " << endTime - startTime << " ms" << "\n";}
 
-	computeNext();
+	if (minEntropyCellsAmount != 0)
+	{
+		computeNext();
+	}
+	
 }
 
 void runWFC()
@@ -589,7 +601,20 @@ void initOpenGL()
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, collapsedCellsAmountBuffer);
 	glBufferStorage(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_MAP_READ_BIT);
 
-	
+	glGenBuffers(1, &tileValuesBuffer);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, tileValuesBuffer);
+	glBufferStorage(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_MAP_READ_BIT);
+
+	glGenBuffers(1, &tileColorsBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tileColorsBuffer);
+	glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(vec4) * 512 * 512, nullptr, GL_MAP_READ_BIT);
+
+	// Fill rules buffer
+	glGenBuffers(1, &rulesBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, rulesBuffer);
+	glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(uint) * TILE_VALUES * 4 * 3, allRules, 0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, rulesBuffer);
+
 	// Textures
 	initTexture(&computeTex1, 1, GL_READ_WRITE, GL_R32UI);
 	initTexture(&computeTex2, 2, GL_READ_WRITE, GL_R32UI);
@@ -607,5 +632,52 @@ void initOpenGL()
 	initShaderProgram({ GL_COMPUTE_SHADER }, { "computeEntropyShader.comp" }, { &computeEntropyShader }, &computeEntropyProgram);
 	initShaderProgram({ GL_COMPUTE_SHADER }, { "chooseTileValueShader.comp" }, { &chooseTileValueShader }, &chooseTileValueProgram);
 	initShaderProgram({ GL_VERTEX_SHADER , GL_FRAGMENT_SHADER }, { "vertexShader.vert","fragmentShader.frag" }, { &screenVertexShader,&screenFragmentShader }, &screenShaderProgram);
+	initShaderProgram({ GL_COMPUTE_SHADER }, { "getTilesFromTexture.comp" }, { &getTilesFromTextureShader }, &getTilesFromTextureProgram);
+}
 
+void getRulesFromTexture()
+{
+	// 1. Load Texture
+	loadTextureFromFile(&inputTexture, "textures/texture1.png");
+
+
+	// 2. Run getTilesFromTextureProgram
+
+	//Buffers
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, tileValuesBuffer);
+	GLuint a = 1;
+	glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &a);
+	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 6, tileValuesBuffer);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tileColorsBuffer);
+	vec4 b = vec4(-1, -1, -1, -1);
+	glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &b);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, tileColorsBuffer);
+
+	// Use compute shader
+	glUseProgram(getTilesFromTextureProgram);
+
+	// Run compute shader
+	glDispatchCompute(4, 4, 1);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+	uint tileValues = *(readBuffer <GLuint>(tileValuesBuffer, GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint)));
+	cout << tileValues << "\n";
+	
+	if (tileValues != 0)
+	{
+		vec4* colors = (readBuffer <vec4>(tileColorsBuffer, GL_SHADER_STORAGE_BUFFER, sizeof(vec4) * tileValues));
+		vector <vec4> tileColors = {};
+		for (int i = 0; i < tileValues; i++)
+		{
+			tileColors.push_back(colors[i]);
+		}
+
+		cout << tileColors[0][0] << tileColors[0][1] << tileColors[0][2] << tileColors[0][3] << "\n";
+		cout << tileColors[1][0] << tileColors[1][1] << tileColors[1][2] << tileColors[1][3] << "\n";
+		cout << tileColors[2][0] << tileColors[2][1] << tileColors[2][2] << tileColors[2][3] << "\n";
+	}
+	
+
+	
 }

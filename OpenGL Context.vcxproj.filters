@@ -100,10 +100,10 @@
     <None Include="computeEntropyShader.comp">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="sudokuComputeShader.comp">
+    <None Include="chooseTileValueShader.comp">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="chooseTileValueShader.comp">
+    <None Include="getTilesFromTexture.comp">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

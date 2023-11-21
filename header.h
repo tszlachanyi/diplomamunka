@@ -36,7 +36,7 @@ int COMPUTE_WIDTH = 9;
 int COMPUTE_HEIGHT = 9;
 
 const unsigned int MAXIMUM_RULES = 100;
-int TILE_VALUES = 9;
+int TILE_VALUES = 4;
 
 int GRID_THICKNESS = 2;
 
@@ -49,7 +49,7 @@ bool IMGUI = true;
 
 bool COLOR_FROM_TEXTURE = true;
 
-bool SUDOKU = true;
+bool SUDOKU = false;
 
 bool vSync = false;
 
@@ -60,6 +60,7 @@ GLuint entropyTex;
 GLuint* activeTexture = &computeTex1;
 GLuint* inactiveTexture = &computeTex2;
 
+GLuint inputTexture;
 vector<GLuint> loadedTextures;
 vector<const char*> textureLocations = {"textures/texture1.png", "textures/texture2.png"  ,"textures/texture3.png" ,"textures/texture4.png", "textures/texture5.png","textures/texture6.png","textures/texture7.png","textures/texture8.png","textures/texture9.png"};
 
@@ -68,6 +69,13 @@ GLuint screenFragmentShader;
 GLuint computeShader;
 GLuint computeEntropyShader;
 GLuint chooseTileValueShader;
+GLuint getTilesFromTextureShader;
+
+GLuint screenShaderProgram;
+GLuint computeProgram;
+GLuint computeEntropyProgram;
+GLuint chooseTileValueProgram;
+GLuint getTilesFromTextureProgram;
 
 GLuint minEntropyBuffer;
 GLuint minEntropyCellsBuffer;
@@ -75,17 +83,20 @@ GLuint minEntropyCellsAmountBuffer;
 GLuint minEntropyCellsAmount;
 GLuint collapsedCellsBuffer;
 GLuint collapsedCellsAmountBuffer;
+GLuint rulesBuffer;
+GLuint tileValuesBuffer;
+GLuint tileColorsBuffer;
 
 vector <GLuint> textureVector;
 
-GLuint screenShaderProgram;
-GLuint computeProgram;
-GLuint computeEntropyProgram;
-GLuint chooseTileValueProgram;
+
 GLuint VAO, VBO, EBO;
 GLFWwindow* window;
 
 GLint currentIteration = 0;
+
+vector<ivec2> collapsedCells = {};
+uint collapsedCellIndex = 0;
 
 double mousexpos, mouseypos;
 
@@ -94,6 +105,14 @@ void runWFC();
 
 void initOpenGL();
 void initScreen();
+
+uint allRules[4][4][3] =
+{
+   {{0,1,15 - 1} , {1,0,15 - 1} , {0,-1,15 - 1}, {-1,0,15 - 1}},
+   {{0,1,15 - 2} , {1,0,15 - 2} , {0,-1,15 - 2}, {-1,0,15 - 2}},
+   {{0,1,15 - 4} , {1,0,15 - 4} , {0,-1,15 - 4}, {-1,0,15 - 4}},
+   {{0,1,15 - 8} , {1,0,15 - 8} , {0,-1,15 - 8}, {-1,0,15 - 8}},
+};
 
 // example for assymetric rules
 //vector<vector<vector<GLint>>> rules =

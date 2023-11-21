@@ -38,44 +38,29 @@ vec2 dividedTextureCoords;		// Coordinates of the pixel relative to the current 
 uint cellValue;		// Tile value of the current cell
 uint entr;		// Entropy value of the current cell
 
+vec4 colorVector[9] = {vec4(1, 0, 0, 1), vec4(0, 1, 0, 1), vec4(0, 0, 1, 1), vec4(1, 1, 0, 1), vec4(0, 1, 1, 1), vec4(1, 0, 1, 1), vec4(1, 0.5, 0, 1), vec4(0, 1, 0.5, 1), vec4(0.5, 0, 1, 1)};
+
 // Gets the color of the cell based on it's GLuint value
 vec4 getTileColor(uint number)
 {
 	vec4 color;
 
-	switch (number) {
-	case 1:
-		color = vec4(1, 0, 0, 1);
-		break;
-	case 2:
-		color = vec4(0, 1, 0, 1);
-		break;
-	case 4:
-		color = vec4(0, 0, 1, 1);
-		break;
-	case 8:
-		color = vec4(1, 1, 0, 1);
-		break;
-	case 16:
-		color = vec4(0, 1, 1, 1);
-		break;
-	case 32:
-		color = color = vec4(1, 0, 1, 1);
-		break;
-	case 64:
-		color = color = vec4(1, 0.5, 0, 1);
-		break;
-	case 128:
-		color = color = vec4(0, 1, 0.5, 1);
-		break;
-	case 256:
-		color = color = vec4(0.5, 0, 1, 1);
-		break;
-	case 0:
+	
+	if (number == 0)
+	{
 		color = vec4(0, 0, 0, 1);
-		break;
-	default:
-		color = vec4(1, 1, 1, 1);
+	}
+	else
+	{
+		float l = log2(number);
+		if (pow(2,l) == float(number))
+		{
+			color = colorVector[int(l)];
+		}
+		else
+		{
+			color = vec4(1, 1, 1, 1);
+		}
 	}
 
 	return color;

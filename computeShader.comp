@@ -4,16 +4,7 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 layout (binding = 1, r32ui) readonly uniform uimage2D inputImage;
 layout (binding = 2, r32ui) writeonly uniform uimage2D outputImage;
 
-uint[4][4][3] allRules =
-{
-   {{0,1,15-1} , {1,0,15-1} , {0,-1,15-1}, {-1,0,15-1}},
-   {{0,1,15-2} , {1,0,15-2} , {0,-1,15-2}, {-1,0,15-2}},
-   {{0,1,15-4} , {1,0,15-4} , {0,-1,15-4}, {-1,0,15-4}},
-   {{0,1,15-8} , {1,0,15-8} , {0,-1,15-8}, {-1,0,15-8}},
-};
 
-uint rules[4][3];
-uint rulesAmount = 4;
 
 uniform uint userChosenValue;
 uniform ivec2 userChosenCoords;
@@ -50,6 +41,15 @@ layout(binding = 3) buffer collapsedCellsBuffer
 };
 layout(binding = 4) uniform atomic_uint collapsedCellsAmount;
 
+
+uint rules[4][3];
+const uint rulesAmount = 4;
+layout(binding = 5) buffer rulesBuffer
+{
+    uint allRules[MAXIMUM_TILE_VALUES][4][3];
+};
+
+
 uint nthBit(uint number, uint n)
 {
 	return (number >> n) & 1;
@@ -85,10 +85,6 @@ void useRules()
 	}
 	else // Sudoku
 	{
-		int blockSize = 3;
-		ivec2 chosenBlockCoords = ivec2(vec2(chosenCoords) / vec2(blockSize));
-		ivec2 currentBlockCoords = ivec2(vec2(currentCoords) / vec2(blockSize));
-
 		// Same Column
 		if (currentCoords.x == chosenCoords.x)
 		{
@@ -102,6 +98,10 @@ void useRules()
 		}
 
 		// Same Block
+		int blockSize = 3;
+		ivec2 chosenBlockCoords = ivec2(vec2(chosenCoords) / vec2(blockSize));
+		ivec2 currentBlockCoords = ivec2(vec2(currentCoords) / vec2(blockSize));
+
 		if (chosenBlockCoords == currentBlockCoords)
 		{
 			cellValue = cellValue & (~chosenValue);
@@ -111,7 +111,7 @@ void useRules()
 
 void main()
 {
-	
+	uint minEntropy = atomicCounter(minCounter);
 	// Current Value
 	currentCoords = ivec2(gl_GlobalInvocationID.xy);
 	cellValue = imageLoad(inputImage, currentCoords)[0];
@@ -169,5 +169,4 @@ void main()
 	}
 
 	imageStore(outputImage, currentCoords, uvec4(cellValue, 0u, 0u, 0u));
-
 }
