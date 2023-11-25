@@ -224,6 +224,7 @@ void Render()
 	glUniform1ui(glGetUniformLocation(screenShaderProgram, "TILE_VALUES"), TILE_VALUES);
 	glUniform1ui(glGetUniformLocation(screenShaderProgram, "COLOR_FROM_TEXTURE"), COLOR_FROM_TEXTURE);
 	glUniform1ui(glGetUniformLocation(screenShaderProgram, "SUDOKU"), SUDOKU);
+	glUniform4fv(glGetUniformLocation(screenShaderProgram, "colorVector"), 9, &colorVector[0][0]);
 	glBindVertexArray(VAO);
 
 	// Draw
@@ -604,10 +605,10 @@ void initOpenGL()
 
 
 	// Fill rules buffer
-	glGenBuffers(1, &rulesBuffer);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, rulesBuffer);
-	glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(uint) * TILE_VALUES * 4 * 3, allRules, 0);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, rulesBuffer);
+	//glGenBuffers(1, &rulesBuffer);
+	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, rulesBuffer);
+	//glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(uint) * TILE_VALUES * 4 * 3, allRules, 0);
+	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, rulesBuffer);
 
 	// Textures
 	initTexture(&computeTex1, 1, GL_READ_WRITE, GL_R32UI);
@@ -714,15 +715,15 @@ void getRulesFromTexture()
 	
 	// 4. Fill rules with zero values
 	vector <vec2> neighbours = { vec2(0,1), vec2(0,-1), vec2(1,0), vec2(-1,0) };
-	vector<vector<ivec3>> rules = {};
+	int rules[3][4][3];
 	for (int i = 0; i < TILE_VALUES; i++)
 	{
-		vector<ivec3> tileRules = {};
 		for (int j = 0; j < neighbours.size(); j++)
 		{
-			tileRules.push_back(vec3(neighbours[j], 0));
+			rules[i][j][0] = neighbours[j][0];
+			rules[i][j][1] = neighbours[j][1];
+			rules[i][j][2] = 0;
 		}
-		rules.push_back(tileRules);
 	}
 
 	// 5. Get rules from the image
@@ -750,10 +751,22 @@ void getRulesFromTexture()
 		}
 	}
 
+	// 6. Send rules to ssbo
+	glGenBuffers(1, &rulesBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, rulesBuffer);
+	glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(int) * 3 * 4 * 3, rules, 0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, rulesBuffer);
+
+	// 7. Set read colors into colorsVector
+	for (int i = 0; i < TILE_VALUES; i++)
+	{
+		colorVector[i] = tiles[i];
+	}
+	 
+	
 	// Print rules
 	for (int i = 0; i < TILE_VALUES; i++)
 	{
-		vector<vec3> tileRules = {};
 		for (int j = 0; j < neighbours.size(); j++)
 		{
 			cout << rules[i][j][0] << "   " << rules[i][j][1] << "   " << rules[i][j][2] << "   " << "\n";

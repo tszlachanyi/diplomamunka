@@ -23,6 +23,7 @@ uniform uint CELL_DIVISION;
 uniform uint TILE_VALUES;
 uniform bool COLOR_FROM_TEXTURE;
 uniform bool SUDOKU;
+uniform vec4 colorVector[9];
 
 uint SCREEN_WIDTH = screenParams[0];
 uint SCREEN_HEIGHT = screenParams[1];
@@ -38,7 +39,7 @@ vec2 dividedTextureCoords;		// Coordinates of the pixel relative to the current 
 uint cellValue;		// Tile value of the current cell
 uint entr;		// Entropy value of the current cell
 
-vec4 colorVector[9] = {vec4(1, 0, 0, 1), vec4(0, 1, 0, 1), vec4(0, 0, 1, 1), vec4(1, 1, 0, 1), vec4(0, 1, 1, 1), vec4(1, 0, 1, 1), vec4(1, 0.5, 0, 1), vec4(0, 1, 0.5, 1), vec4(0.5, 0, 1, 1)};
+//vec4 colorVector[9] = {vec4(1, 0, 0, 1), vec4(0, 1, 0, 1), vec4(0, 0, 1, 1), vec4(1, 1, 0, 1), vec4(0, 1, 1, 1), vec4(1, 0, 1, 1), vec4(1, 0.5, 0, 1), vec4(0, 1, 0.5, 1), vec4(0.5, 0, 1, 1)};
 
 // Gets the color of the cell based on it's GLuint value
 vec4 getTileColor(uint number)
