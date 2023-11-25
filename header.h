@@ -75,7 +75,6 @@ GLuint screenShaderProgram;
 GLuint computeProgram;
 GLuint computeEntropyProgram;
 GLuint chooseTileValueProgram;
-GLuint getTilesFromTextureProgram;
 
 GLuint minEntropyBuffer;
 GLuint minEntropyCellsBuffer;
@@ -84,8 +83,6 @@ GLuint minEntropyCellsAmount;
 GLuint collapsedCellsBuffer;
 GLuint collapsedCellsAmountBuffer;
 GLuint rulesBuffer;
-GLuint tileValuesBuffer;
-GLuint tileColorsBuffer;
 
 vector <GLuint> textureVector;
 

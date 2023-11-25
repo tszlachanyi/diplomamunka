@@ -18,7 +18,7 @@ void printVector(vector<T> vector)
 	std::cout << "]" << "\n";
 }
 
-void loadTextureFromFile(GLuint *texture, const char* fileName)
+vec3 loadTextureFromFile(GLuint *texture, const char* fileName)
 {
 	stbi_set_flip_vertically_on_load(true);
 	glGenTextures(1, texture);
@@ -32,7 +32,7 @@ void loadTextureFromFile(GLuint *texture, const char* fileName)
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	// load and generate the texture
 	int width, height, nrChannels;
-	unsigned char* data = stbi_load(fileName, &width, &height, &nrChannels, 0);
+	unsigned char* data = stbi_load(fileName, &width, &height, &nrChannels, 4);
 
 	if (data)
 	{
@@ -44,7 +44,7 @@ void loadTextureFromFile(GLuint *texture, const char* fileName)
 		std::cout << "Failed to load texture" << "\n";
 	}
 	stbi_image_free(data);
-	
+	return vec3(width, height, nrChannels);
 }
 
 void initTexture(GLuint* texture, int unitIndex, int access, int format, vec2 size = vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT))
@@ -111,9 +111,9 @@ int matrixToVecCoords(vec2 coords)
 }
 
 // Checks if a coordinate is valid (inside the grid)
-bool isInsideGrid(vec2 coords)
+bool isInsideGrid(vec2 coords, vec2 gridSize)
 {
-	return (coords.x < COMPUTE_WIDTH && coords.x >= 0 && coords.y < COMPUTE_HEIGHT && coords.y >= 0);
+	return (coords.x < gridSize.x && coords.x >= 0 && coords.y < gridSize.y && coords.y >= 0);
 }
 
 // Get current epoch time in milliseconds
@@ -145,6 +145,7 @@ vector<GLuint> possibleTiles(GLuint number)
 }
 
 // Get vector format of a GL_R32UI texture
+
 vector <GLuint> getTextureVector(GLuint texture)
 {
 	uint startTime = getEpochTime();
@@ -515,7 +516,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 		if (button == GLFW_MOUSE_BUTTON_LEFT)
 		{
-			if (isInsideGrid(coords))
+			if (isInsideGrid(coords, vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT)))
 			{
 				textureVector = getTextureVector(*activeTexture);
 				GLuint currentValue = textureVector[matrixToVecCoords(coords)];
@@ -601,13 +602,6 @@ void initOpenGL()
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, collapsedCellsAmountBuffer);
 	glBufferStorage(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_MAP_READ_BIT);
 
-	glGenBuffers(1, &tileValuesBuffer);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, tileValuesBuffer);
-	glBufferStorage(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_MAP_READ_BIT);
-
-	glGenBuffers(1, &tileColorsBuffer);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tileColorsBuffer);
-	glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(vec4) * 512 * 512, nullptr, GL_MAP_READ_BIT);
 
 	// Fill rules buffer
 	glGenBuffers(1, &rulesBuffer);
@@ -632,52 +626,137 @@ void initOpenGL()
 	initShaderProgram({ GL_COMPUTE_SHADER }, { "computeEntropyShader.comp" }, { &computeEntropyShader }, &computeEntropyProgram);
 	initShaderProgram({ GL_COMPUTE_SHADER }, { "chooseTileValueShader.comp" }, { &chooseTileValueShader }, &chooseTileValueProgram);
 	initShaderProgram({ GL_VERTEX_SHADER , GL_FRAGMENT_SHADER }, { "vertexShader.vert","fragmentShader.frag" }, { &screenVertexShader,&screenFragmentShader }, &screenShaderProgram);
-	initShaderProgram({ GL_COMPUTE_SHADER }, { "getTilesFromTexture.comp" }, { &getTilesFromTextureShader }, &getTilesFromTextureProgram);
 }
+
+template <typename T>
+bool vectorContains(vector<T> v, T element)
+{
+	for (int i = 0; i < v.size(); i++)
+	{
+		if (v[i] == element)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+// Find the index of an element in a vector
+template <typename T>
+int findElementIndexInVector(vector<T> v, T element)
+{
+	for (int i = 0; i < v.size(); i++)
+	{
+		if (v[i] == element)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
+
+void print(vec4 v)
+{
+	cout << v[0]<< " " << v[1] << " " << v[2] << " " << v[3] << "\n";
+}
+
 
 void getRulesFromTexture()
 {
-	// 1. Load Texture
-	loadTextureFromFile(&inputTexture, "textures/texture1.png");
-
-
-	// 2. Run getTilesFromTextureProgram
-
-	//Buffers
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, tileValuesBuffer);
-	GLuint a = 1;
-	glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &a);
-	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 6, tileValuesBuffer);
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tileColorsBuffer);
-	vec4 b = vec4(-1, -1, -1, -1);
-	glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &b);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, tileColorsBuffer);
-
-	// Use compute shader
-	glUseProgram(getTilesFromTextureProgram);
-
-	// Run compute shader
-	glDispatchCompute(4, 4, 1);
-	glMemoryBarrier(GL_ALL_BARRIER_BITS);
-
-	uint tileValues = *(readBuffer <GLuint>(tileValuesBuffer, GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint)));
-	cout << tileValues << "\n";
 	
-	if (tileValues != 0)
-	{
-		vec4* colors = (readBuffer <vec4>(tileColorsBuffer, GL_SHADER_STORAGE_BUFFER, sizeof(vec4) * tileValues));
-		vector <vec4> tileColors = {};
-		for (int i = 0; i < tileValues; i++)
-		{
-			tileColors.push_back(colors[i]);
-		}
+	// 1. Load Texture
+	vec3 params = loadTextureFromFile(&inputTexture, "textures/testTexture1.png");
+	
+	// 2. Convert it into matrix
+	int width = params[0];
+	int height = params[1];
+	cout << width << " " << height << "\n";
+	vector <GLubyte> v (width * height * 4);
+	glBindTexture(GL_TEXTURE_2D, inputTexture);
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, &v[0]);
+	glBindTexture(GL_TEXTURE_2D, 0);
 
-		cout << tileColors[0][0] << tileColors[0][1] << tileColors[0][2] << tileColors[0][3] << "\n";
-		cout << tileColors[1][0] << tileColors[1][1] << tileColors[1][2] << tileColors[1][3] << "\n";
-		cout << tileColors[2][0] << tileColors[2][1] << tileColors[2][2] << tileColors[2][3] << "\n";
+	vector<vector<vec4>> image;
+	
+	for (int i = 0; i < width; ++i) 
+	{
+		vector<vec4> column;
+		for (int j = 0; j < height; ++j) 
+		{
+			int index = (j * width + i) * 4;
+			vec4 pixel = vec4(float(v[index]) / 255.0f, float(v[index + 1]) / 255.0f, float(v[index + 2]) / 255.0f, float(v[index + 3]) / 255.0f);
+			column.push_back(pixel);
+		}
+		image.push_back(column);
+	}
+
+	// 3. Get all different pixels
+	vector<vec4> tiles = {};
+	for (int i = 0; i < width; i++)
+	{
+		for (int j = 0; j < height; j++)
+		{
+			vec4 pixel = image[i][j];
+			if(vectorContains<vec4>(tiles,pixel) == false) //tiles doesnt contain pixel
+			{
+				tiles.push_back(pixel);
+			}
+		}
 	}
 	
+	for (int i = 0; i < tiles.size(); i++)
+	{
+		cout << tiles[i].x << "   " << tiles[i].y << "   " << tiles[i].z << "   " << "\n";
+	}
 
+	TILE_VALUES = tiles.size();
 	
+	// 4. Fill rules with zero values
+	vector <vec2> neighbours = { vec2(0,1), vec2(0,-1), vec2(1,0), vec2(-1,0) };
+	vector<vector<ivec3>> rules = {};
+	for (int i = 0; i < TILE_VALUES; i++)
+	{
+		vector<ivec3> tileRules = {};
+		for (int j = 0; j < neighbours.size(); j++)
+		{
+			tileRules.push_back(vec3(neighbours[j], 0));
+		}
+		rules.push_back(tileRules);
+	}
+
+	// 5. Get rules from the image
+	for (int i = 0; i < width; i++)
+	{
+		for (int j = 0; j < height; j++)
+		{
+			// Read pixel
+			vec4 pixel = image[i][j];
+			uint tileNumber = findElementIndexInVector(tiles, pixel);
+			uint tileValue = pow(2, tileNumber);
+
+			for (int k = 0; k < neighbours.size(); k++)
+			{
+				vec2 neighbourCoords = vec2(i, j) + neighbours[k];
+				if (isInsideGrid(neighbourCoords, vec2(width, height)))
+				{
+					vec4 neighbourPixel = image[neighbourCoords.x][neighbourCoords.y];
+					uint neighbourTileNumber = findElementIndexInVector(tiles, neighbourPixel);
+					uint neighbourTileValue = pow(2, neighbourTileNumber);
+
+					rules[tileNumber][k][2] = rules[tileNumber][k][2] | neighbourTileValue;
+				}
+			}
+		}
+	}
+
+	// Print rules
+	for (int i = 0; i < TILE_VALUES; i++)
+	{
+		vector<vec3> tileRules = {};
+		for (int j = 0; j < neighbours.size(); j++)
+		{
+			cout << rules[i][j][0] << "   " << rules[i][j][1] << "   " << rules[i][j][2] << "   " << "\n";
+		}
+	}
 }

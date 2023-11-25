@@ -52,8 +52,8 @@ vec4 getTileColor(uint number)
 	}
 	else
 	{
-		float l = log2(number);
-		if (pow(2,l) == float(number))
+		float l = log2(float(number));
+		if (floor(l) == l)
 		{
 			color = colorVector[int(l)];
 		}
