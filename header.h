@@ -35,7 +35,8 @@ const unsigned int SCREEN_HEIGHT = 1024;
 int COMPUTE_WIDTH = 9;
 int COMPUTE_HEIGHT = 9;
 
-const unsigned int MAXIMUM_RULES = 100;
+const unsigned int MAXIMUM_RULES = 4;				// You also have to set it in compute shader
+const unsigned int MAXIMUM_TILE_VALUES = 32;		// You also have to set it in compute shader
 int TILE_VALUES = 4;
 
 int GRID_THICKNESS = 2;
@@ -63,6 +64,7 @@ GLuint* inactiveTexture = &computeTex2;
 GLuint inputTexture;
 vector<GLuint> loadedTextures;
 vector<const char*> textureLocations = {"textures/texture1.png", "textures/texture2.png"  ,"textures/texture3.png" ,"textures/texture4.png", "textures/texture5.png","textures/texture6.png","textures/texture7.png","textures/texture8.png","textures/texture9.png"};
+char ruleInputTextureLocation[40] = "textures/testTexture1.png";
 
 GLuint screenVertexShader;
 GLuint screenFragmentShader;
@@ -100,10 +102,12 @@ double mousexpos, mouseypos;
 void runOneIteration();
 void runWFC();
 
-void initOpenGL();
+void initOpenGLObjects();
 void initScreen();
 
-vec4 colorVector[9] = { vec4(1, 0, 0, 1), vec4(0, 1, 0, 1), vec4(0, 0, 1, 1), vec4(1, 1, 0, 1), vec4(0, 1, 1, 1), vec4(1, 0, 1, 1), vec4(1, 0.5, 0, 1), vec4(0, 1, 0.5, 1), vec4(0.5, 0, 1, 1) };
+void getRulesFromTexture();
+
+vec4 colorVector[MAXIMUM_TILE_VALUES] = { vec4(1, 0, 0, 1), vec4(0, 1, 0, 1), vec4(0, 0, 1, 1), vec4(1, 1, 0, 1), vec4(0, 1, 1, 1), vec4(1, 0, 1, 1), vec4(1, 0.5, 0, 1), vec4(0, 1, 0.5, 1), vec4(0.5, 0, 1, 1) };
 
 int allRules[4][4][3] =
 {

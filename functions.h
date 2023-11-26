@@ -187,6 +187,8 @@ void initScreen()
 	currentIteration = 0;
 	glTextureSubImage2D(computeTex1, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &arr[0]);
 
+	CELL_DIVISION = ceil(sqrt(TILE_VALUES));
+
 	activeTexture = &computeTex1;
 	inactiveTexture = &computeTex2;
 }
@@ -224,18 +226,18 @@ void Render()
 	glUniform1ui(glGetUniformLocation(screenShaderProgram, "TILE_VALUES"), TILE_VALUES);
 	glUniform1ui(glGetUniformLocation(screenShaderProgram, "COLOR_FROM_TEXTURE"), COLOR_FROM_TEXTURE);
 	glUniform1ui(glGetUniformLocation(screenShaderProgram, "SUDOKU"), SUDOKU);
-	glUniform4fv(glGetUniformLocation(screenShaderProgram, "colorVector"), 9, &colorVector[0][0]);
+	glUniform4fv(glGetUniformLocation(screenShaderProgram, "colorVector"), MAXIMUM_TILE_VALUES, &colorVector[0][0]);
 	glBindVertexArray(VAO);
 
 	// Draw
 	glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_INT, 0);
 
-	//// ImGUI
+	// ImGUI
 	bool runwfc = false;
 	if (IMGUI)
 	{
 		ImGui::Begin("ImGUI window");
-		ImGui::SetWindowSize(ImVec2(500, 300));
+		ImGui::SetWindowSize(ImVec2(500, 400));
 		ImGui::Checkbox("LOG ELAPSED TIMES", &LOG_ELAPSED_TIMES);
 		ImGui::Checkbox("DIVIDE CELLS", &DIVIDE_CELLS);
 		ImGui::Checkbox("COLOR FROM TEXTURE", &COLOR_FROM_TEXTURE);
@@ -244,18 +246,18 @@ void Render()
 		ImGui::SliderInt("GRID THICKNESS", &GRID_THICKNESS, 0, 10);
 		if (ImGui::SliderInt("COMPUTE WIDTH", &COMPUTE_WIDTH, 1, 1024))
 		{
-			initOpenGL();
+			initOpenGLObjects();
 			initScreen();
 		}
 		if (ImGui::SliderInt("COMPUTE HEIGHT", &COMPUTE_HEIGHT, 1, 1024))
 		{
-			initOpenGL();
+			initOpenGLObjects();
 			initScreen();
 		}
 		if (ImGui::SliderInt("TILE VALUES", &TILE_VALUES, 1, 32))
 		{
 			CELL_DIVISION = ceil(sqrt(TILE_VALUES));
-			initOpenGL();
+			initOpenGLObjects();
 			initScreen();
 		}
 		
@@ -273,6 +275,18 @@ void Render()
 		{
 			initScreen();
 		}
+
+		if (ImGui::Button("Get rules from image"))
+		{
+			COLOR_FROM_TEXTURE = false;
+			getRulesFromTexture();
+			initOpenGLObjects();
+			initScreen();
+		}
+
+		ImGui::InputText("Input image location", ruleInputTextureLocation, sizeof(ruleInputTextureLocation));
+
+			
 		ImGui::End();
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -580,7 +594,7 @@ static void cursor_position_callback(GLFWwindow* window, double xpos, double ypo
 	;
 }
 
-void initOpenGL()
+void initOpenGLObjects()
 {
 	// Buffers
 	glGenBuffers(1, &minEntropyBuffer);
@@ -603,12 +617,17 @@ void initOpenGL()
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, collapsedCellsAmountBuffer);
 	glBufferStorage(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_MAP_READ_BIT);
 
-
 	// Fill rules buffer
-	//glGenBuffers(1, &rulesBuffer);
-	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, rulesBuffer);
-	//glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(uint) * TILE_VALUES * 4 * 3, allRules, 0);
-	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, rulesBuffer);
+	static bool firstCall = true;
+	if (firstCall)
+	{
+		glGenBuffers(1, &rulesBuffer);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, rulesBuffer);
+		glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(int) * TILE_VALUES * 4 * 3, allRules, 0);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, rulesBuffer);
+	
+		firstCall = false;
+	}
 
 	// Textures
 	initTexture(&computeTex1, 1, GL_READ_WRITE, GL_R32UI);
@@ -667,7 +686,7 @@ void getRulesFromTexture()
 {
 	
 	// 1. Load Texture
-	vec3 params = loadTextureFromFile(&inputTexture, "textures/testTexture1.png");
+	vec3 params = loadTextureFromFile(&inputTexture, ruleInputTextureLocation);
 	
 	// 2. Convert it into matrix
 	int width = params[0];
@@ -715,14 +734,24 @@ void getRulesFromTexture()
 	
 	// 4. Fill rules with zero values
 	vector <vec2> neighbours = { vec2(0,1), vec2(0,-1), vec2(1,0), vec2(-1,0) };
-	int rules[3][4][3];
+	int rules[MAXIMUM_TILE_VALUES][MAXIMUM_RULES][3];
 	for (int i = 0; i < TILE_VALUES; i++)
 	{
 		for (int j = 0; j < neighbours.size(); j++)
 		{
-			rules[i][j][0] = neighbours[j][0];
-			rules[i][j][1] = neighbours[j][1];
-			rules[i][j][2] = 0;
+			if (TILE_VALUES > i && neighbours.size() > j)
+			{
+				rules[i][j][0] = neighbours[j][0];
+				rules[i][j][1] = neighbours[j][1];
+				rules[i][j][2] = 0;
+			}
+			else
+			{
+				rules[i][j][0] = 0;
+				rules[i][j][1] = 0;
+				rules[i][j][2] = 0;
+			}
+			
 		}
 	}
 
@@ -754,8 +783,12 @@ void getRulesFromTexture()
 	// 6. Send rules to ssbo
 	glGenBuffers(1, &rulesBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, rulesBuffer);
-	glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(int) * 3 * 4 * 3, rules, 0);
+	glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(int) * MAXIMUM_TILE_VALUES * MAXIMUM_RULES * 3, rules, 0);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, rulesBuffer);
+
+	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, rulesBuffer);
+	//glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32UI, GL_RED, GL_INT, rules);
+	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, rulesBuffer);
 
 	// 7. Set read colors into colorsVector
 	for (int i = 0; i < TILE_VALUES; i++)
@@ -765,11 +798,11 @@ void getRulesFromTexture()
 	 
 	
 	// Print rules
-	for (int i = 0; i < TILE_VALUES; i++)
-	{
-		for (int j = 0; j < neighbours.size(); j++)
-		{
-			cout << rules[i][j][0] << "   " << rules[i][j][1] << "   " << rules[i][j][2] << "   " << "\n";
-		}
-	}
+	//for (int i = 0; i < TILE_VALUES; i++)
+	//{
+	//	for (int j = 0; j < neighbours.size(); j++)
+	//	{
+	//		cout << rules[i][j][0] << "   " << rules[i][j][1] << "   " << rules[i][j][2] << "   " << "\n";
+	//	}
+	//}
 }

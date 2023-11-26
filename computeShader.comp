@@ -4,7 +4,8 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 layout (binding = 1, r32ui) readonly uniform uimage2D inputImage;
 layout (binding = 2, r32ui) writeonly uniform uimage2D outputImage;
 
-
+const uint MAXIMUM_TILE_VALUES = 32;
+const uint MAXIMUM_RULES = 4;
 
 uniform uint userChosenValue;
 uniform ivec2 userChosenCoords;
@@ -15,7 +16,6 @@ uniform float random2;
 uniform uint TILE_VALUES;
 uniform bool SUDOKU;
 
-const uint MAXIMUM_TILE_VALUES = 32;
 uint cellValue;
 uint chosenCellOldValue;
 uint chosenCellIndex;
@@ -42,11 +42,11 @@ layout(binding = 3) buffer collapsedCellsBuffer
 layout(binding = 4) uniform atomic_uint collapsedCellsAmount;
 
 
-uint rules[4][3];
+uint rules[MAXIMUM_RULES][3];
 const uint rulesAmount = 4;
 layout(binding = 5) buffer rulesBuffer
 {
-    uint allRules[MAXIMUM_TILE_VALUES][4][3];
+    uint allRules[MAXIMUM_TILE_VALUES][MAXIMUM_RULES][3];
 };
 
 
