@@ -5,7 +5,7 @@ layout (binding = 1, r32ui) readonly uniform uimage2D inputImage;
 layout (binding = 2, r32ui) writeonly uniform uimage2D outputImage;
 
 const uint MAXIMUM_TILE_VALUES = 32;
-const uint MAXIMUM_RULES = 4;
+const uint MAXIMUM_RULES = 10;
 
 uniform uint userChosenValue;
 uniform ivec2 userChosenCoords;
@@ -15,6 +15,7 @@ uniform float random1;
 uniform float random2;
 uniform uint TILE_VALUES;
 uniform bool SUDOKU;
+uniform uint RULES_AMOUNT;
 
 uint cellValue;
 uint chosenCellOldValue;
@@ -43,7 +44,7 @@ layout(binding = 4) uniform atomic_uint collapsedCellsAmount;
 
 
 uint rules[MAXIMUM_RULES][3];
-const uint rulesAmount = 4;
+
 layout(binding = 5) buffer rulesBuffer
 {
     uint allRules[MAXIMUM_TILE_VALUES][MAXIMUM_RULES][3];
@@ -75,7 +76,7 @@ void useRules()
 {
 	if(!SUDOKU) // Regular rules
 	{
-		for (int i = 0; i < rulesAmount; i++)
+		for (int i = 0; i < RULES_AMOUNT; i++)
 			{
 				if (currentCoords == chosenCoords + ivec2(rules[i][0], rules[i][1]))
 				{

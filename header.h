@@ -35,8 +35,9 @@ const unsigned int SCREEN_HEIGHT = 1024;
 int COMPUTE_WIDTH = 9;
 int COMPUTE_HEIGHT = 9;
 
-const unsigned int MAXIMUM_RULES = 4;				// You also have to set it in compute shader
+const unsigned int MAXIMUM_RULES = 10;				// You also have to set it in compute shader
 const unsigned int MAXIMUM_TILE_VALUES = 32;		// You also have to set it in compute shader
+int RULES_AMOUNT = 4;
 int TILE_VALUES = 4;
 
 int GRID_THICKNESS = 2;

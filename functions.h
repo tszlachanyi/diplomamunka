@@ -356,6 +356,7 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 	glUniform1f(glGetUniformLocation(computeProgram, "random2"), random2);
 	glUniform1ui(glGetUniformLocation(computeProgram, "TILE_VALUES"), TILE_VALUES);
 	glUniform1ui(glGetUniformLocation(computeProgram, "SUDOKU"), SUDOKU);
+	glUniform1ui(glGetUniformLocation(computeProgram, "RULES_AMOUNT"), RULES_AMOUNT);
 
 	// Run compute shader
 	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
@@ -684,6 +685,9 @@ void print(vec4 v)
 
 void getRulesFromTexture()
 {
+	// Neighbours to check
+	RULES_AMOUNT = 8;
+	vector <vec2> neighbours = { vec2(0,1), vec2(0,-1), vec2(1,0), vec2(-1,0), vec2(1,1), vec2(-1,1), vec2(1,-1), vec2(-1,-1) };
 	
 	// 1. Load Texture
 	vec3 params = loadTextureFromFile(&inputTexture, ruleInputTextureLocation);
@@ -733,7 +737,6 @@ void getRulesFromTexture()
 	TILE_VALUES = tiles.size();
 	
 	// 4. Fill rules with zero values
-	vector <vec2> neighbours = { vec2(0,1), vec2(0,-1), vec2(1,0), vec2(-1,0) };
 	int rules[MAXIMUM_TILE_VALUES][MAXIMUM_RULES][3];
 	for (int i = 0; i < TILE_VALUES; i++)
 	{
@@ -798,11 +801,11 @@ void getRulesFromTexture()
 	 
 	
 	// Print rules
-	//for (int i = 0; i < TILE_VALUES; i++)
-	//{
-	//	for (int j = 0; j < neighbours.size(); j++)
-	//	{
-	//		cout << rules[i][j][0] << "   " << rules[i][j][1] << "   " << rules[i][j][2] << "   " << "\n";
-	//	}
-	//}
+	for (int i = 0; i < TILE_VALUES; i++)
+	{
+		for (int j = 0; j < neighbours.size(); j++)
+		{
+			cout << rules[i][j][0] << "   " << rules[i][j][1] << "   " << rules[i][j][2] << "   " << "\n";
+		}
+	}
 }
