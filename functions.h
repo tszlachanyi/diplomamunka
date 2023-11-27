@@ -184,12 +184,10 @@ void initScreen()
 	vector <int> arr(COMPUTE_WIDTH * COMPUTE_HEIGHT, pow(2, TILE_VALUES) - 1);
 
 	currentIteration = 0;
-	glTextureSubImage2D(computeTex1, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &arr[0]);
+	glTextureSubImage2D(computeTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &arr[0]);
 
 	CELL_DIVISION = ceil(sqrt(TILE_VALUES));
 
-	activeTexture = &computeTex1;
-	inactiveTexture = &computeTex2;
 }
 
 void Render()
@@ -206,7 +204,7 @@ void Render()
 	glUseProgram(screenShaderProgram);
 
 	// Get the current computeTex to render
-	glBindImageTexture(1, *activeTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+	glBindImageTexture(1, computeTex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 
 	// Send externally loaded textures to gpu
 	for (int i = 0; i < loadedTextures.size(); i++)
@@ -331,8 +329,7 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 	uint startTime = getEpochTime();
 
 	// Set input and output textures
-	glBindImageTexture(1, *activeTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-	glBindImageTexture(2, *inactiveTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+	glBindImageTexture(1, computeTex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 	
 	// Buffers
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, collapsedCellsBuffer);
@@ -361,13 +358,13 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 	glUniform1ui(glGetUniformLocation(computeProgram, "TILE_VALUES"), TILE_VALUES);
 	glUniform1ui(glGetUniformLocation(computeProgram, "SUDOKU"), SUDOKU);
 	glUniform1ui(glGetUniformLocation(computeProgram, "RULES_AMOUNT"), RULES_AMOUNT);
+	glUniform2iv(glGetUniformLocation(computeProgram, "neighbours"), RULES_AMOUNT, &neighbours[0].x);
 
 	// Run compute shader
-	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
+	glDispatchCompute(RULES_AMOUNT + 1, 1, 1);
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 	currentIteration++;
-	swap(activeTexture, inactiveTexture);
 
 	// Print time
 	uint endTime = getEpochTime();
@@ -398,7 +395,7 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 void runComputeEntropyProgram()
 {
 	// Set input texture
-	glBindImageTexture(1, *activeTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+	glBindImageTexture(1, computeTex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 	
 	// Atomic Counter
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, minEntropyBuffer);
@@ -420,7 +417,7 @@ void runComputeEntropyProgram()
 void runChooseTileValueProgram()
 {
 	// Set input texture
-	glBindImageTexture(1, *activeTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+	glBindImageTexture(1, computeTex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 
 	// Buffers
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, minEntropyCellsBuffer);
@@ -538,7 +535,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 		{
 			if (isInsideGrid(coords, vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT)))
 			{
-				textureVector = getTextureVector(*activeTexture);
+				textureVector = getTextureVector(computeTex);
 				GLuint currentValue = textureVector[matrixToVecCoords(coords)];
 				// If the cell is already collapsed (has only 1 or 0 possible tile), don't do anything
 				if (possibleTiles(currentValue).size() > 1)
@@ -567,7 +564,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 		if (button == GLFW_MOUSE_BUTTON_RIGHT)
 		{
 			cout << " (" << coords.x << " , " << coords.y << ")  ";
-			textureVector = getTextureVector(*activeTexture);
+			textureVector = getTextureVector(computeTex);
 
 			std::vector<bool> bits(TILE_VALUES);
 
@@ -635,8 +632,7 @@ void initOpenGLObjects()
 	}
 
 	// Textures
-	initTexture(&computeTex1, 1, GL_READ_WRITE, GL_R32UI);
-	initTexture(&computeTex2, 2, GL_READ_WRITE, GL_R32UI);
+	initTexture(&computeTex, 1, GL_READ_WRITE, GL_R32UI);
 	initTexture(&entropyTex, 3, GL_READ_WRITE, GL_R32UI);
 
 	for (int i = 0; i < textureLocations.size(); i++)
@@ -689,12 +685,6 @@ void print(vec4 v)
 
 void getRulesFromTexture()
 {
-	// Neighbours to check
-	RULES_AMOUNT = 8;
-	vector <vec2> neighbours = { vec2(0,1), vec2(0,-1), vec2(1,0), vec2(-1,0), vec2(1,1), vec2(-1,1), vec2(1,-1), vec2(-1,-1) };
-	
-	
-
 	// 1. Load Texture
 	vec3 params = loadTextureFromFile(&inputTexture, ruleInputTextureLocation);
 	
@@ -776,8 +766,8 @@ void getRulesFromTexture()
 
 			for (int k = 0; k < neighbours.size(); k++)
 			{
-				vec2 neighbourCoords = vec2(i, j) + neighbours[k];
-				if (isInsideGrid(neighbourCoords, vec2(width, height)))
+				ivec2 neighbourCoords = ivec2(i, j) + neighbours[k];
+				if (isInsideGrid(neighbourCoords, ivec2(width, height)))
 				{
 					vec4 neighbourPixel = image[neighbourCoords.x][neighbourCoords.y];
 					uint neighbourTileNumber = findElementIndexInVector(tiles, neighbourPixel);

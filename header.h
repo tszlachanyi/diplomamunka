@@ -36,10 +36,12 @@ const unsigned int SCREEN_HEIGHT = 1024;
 int COMPUTE_WIDTH = 9;
 int COMPUTE_HEIGHT = 9;
 
+vector <ivec2> neighbours = { ivec2(0,1), ivec2(1, 0), ivec2(0, -1), ivec2(-1,0) };
 const unsigned int MAXIMUM_RULES = 4;				// You also have to set it in compute shader
 const unsigned int MAXIMUM_TILE_VALUES = 32;		// You also have to set it in compute shader
-int RULES_AMOUNT = 4;
+int RULES_AMOUNT = neighbours.size();
 int TILE_VALUES = 4;
+
 
 int GRID_THICKNESS = 2;
 
@@ -56,12 +58,8 @@ bool SUDOKU = false;
 
 bool vSync = false;
 
-GLuint computeTex2;
-GLuint computeTex1;
+GLuint computeTex;
 GLuint entropyTex;
-
-GLuint* activeTexture = &computeTex1;
-GLuint* inactiveTexture = &computeTex2;
 
 GLuint inputTexture;
 vector<GLuint> loadedTextures;
@@ -112,6 +110,8 @@ void getRulesFromTexture();
 
 vec4 colorVector[MAXIMUM_TILE_VALUES] = { vec4(1, 0, 0, 1), vec4(0, 1, 0, 1), vec4(0, 0, 1, 1), vec4(1, 1, 0, 1), vec4(0, 1, 1, 1), vec4(1, 0, 1, 1), vec4(1, 0.5, 0, 1), vec4(0, 1, 0.5, 1), vec4(0.5, 0, 1, 1) };
 
+// Order of rules must match order of coords in neighbours vector
+//int allRules[TILE_VALUES][RULES_AMOUNT][3] =
 int allRules[4][4][3] =
 {
    {{0,1,15 - 1} , {1,0,15 - 1} , {0,-1,15 - 1}, {-1,0,15 - 1}},

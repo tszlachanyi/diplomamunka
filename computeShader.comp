@@ -1,8 +1,7 @@
 #version 460 core
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-layout (binding = 1, r32ui) readonly uniform uimage2D inputImage;
-layout (binding = 2, r32ui) writeonly uniform uimage2D outputImage;
+layout (binding = 1, r32ui) uniform uimage2D inputImage;
 
 const uint MAXIMUM_TILE_VALUES = 32;
 const uint MAXIMUM_RULES = 4;
@@ -16,6 +15,7 @@ uniform float random2;
 uniform uint TILE_VALUES;
 uniform bool SUDOKU;
 uniform uint RULES_AMOUNT;
+uniform ivec2 neighbours[4];
 
 uint cellValue;
 uint chosenCellOldValue;
@@ -113,10 +113,7 @@ void useRules()
 void main()
 {
 	uint minEntropy = atomicCounter(minCounter);
-	// Current Value
-	currentCoords = ivec2(gl_GlobalInvocationID.xy);
-	cellValue = imageLoad(inputImage, currentCoords)[0];
-
+	
 	// Chosen Cell
 	if (manualCoords)
 	{
@@ -127,6 +124,18 @@ void main()
 		chosenCellIndex = uint(floor(random1 * atomicCounter(minEntropyCellsAmount)));
 		chosenCoords = minEntropyCells[chosenCellIndex];
 	}
+
+	// Current Cell
+	if (gl_GlobalInvocationID.x == 0)
+	{
+		currentCoords = chosenCoords;
+	}
+	else
+	{
+		currentCoords = chosenCoords + neighbours[gl_GlobalInvocationID.x - 1];
+	}
+	
+	cellValue = imageLoad(inputImage, currentCoords)[0];
 	
 
 	// Chosen Value 
@@ -169,5 +178,5 @@ void main()
 		}
 	}
 
-	imageStore(outputImage, currentCoords, uvec4(cellValue, 0u, 0u, 0u));
+	imageStore(inputImage, currentCoords, uvec4(cellValue, 0u, 0u, 0u));
 }
