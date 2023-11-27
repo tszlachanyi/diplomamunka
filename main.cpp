@@ -65,7 +65,18 @@ int main()
 	// Load initial position
 	initScreen();
 
-	
+	//const uint KERNEL_WIDTH = 2;
+	//const uint KERNEL_HEIGHT = 2;
+	//
+	//vec3 textureData[KERNEL_WIDTH][KERNEL_HEIGHT] = { {vec3(1,0,0), vec3(0,1,0)}, {vec3(1,0,0), vec3(0,0,1)} };
+	////vec4 textureData[KERNEL_WIDTH * KERNEL_HEIGHT] = { vec4(255,0,0,1), vec4(0,1,0,1) , vec4(1,0,0,1), vec4(0,0,1,1) };
+	//glEnable(GL_TEXTURE_2D);
+	//glGenTextures(1, &testTexture);
+	//glBindTexture(GL_TEXTURE_2D, testTexture);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData);
+	//glBindTexture(GL_TEXTURE_2D, 0);
 
 	// Main Loop
 	while (!glfwWindowShouldClose(window))

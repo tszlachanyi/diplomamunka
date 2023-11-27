@@ -23,7 +23,6 @@ vec3 loadTextureFromFile(GLuint *texture, const char* fileName)
 	stbi_set_flip_vertically_on_load(true);
 	glGenTextures(1, texture);
 	glBindTexture(GL_TEXTURE_2D, *texture);
-	// set the texture wrapping/filtering options (on the currently bound texture object)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -215,7 +214,12 @@ void Render()
 		glActiveTexture(GL_TEXTURE0+i);
 		glBindTexture(GL_TEXTURE_2D, loadedTextures[i]);
 		glUniform1i(glGetUniformLocation(screenShaderProgram, concatenate("loadedTexture", i)), i);
+		
 	}
+
+	glActiveTexture(GL_TEXTURE0 + loadedTextures.size());
+	glBindTexture(GL_TEXTURE_2D, testTexture);
+	glUniform1i(glGetUniformLocation(screenShaderProgram, "testTexture"), loadedTextures.size());
 
 	// Send uniforms
 	glUniform1ui(glGetUniformLocation(screenShaderProgram, "gridThickness"), GRID_THICKNESS);
@@ -689,6 +693,8 @@ void getRulesFromTexture()
 	RULES_AMOUNT = 8;
 	vector <vec2> neighbours = { vec2(0,1), vec2(0,-1), vec2(1,0), vec2(-1,0), vec2(1,1), vec2(-1,1), vec2(1,-1), vec2(-1,-1) };
 	
+	
+
 	// 1. Load Texture
 	vec3 params = loadTextureFromFile(&inputTexture, ruleInputTextureLocation);
 	

@@ -14,6 +14,7 @@ uniform sampler2D loadedTexture6;
 uniform sampler2D loadedTexture7;
 uniform sampler2D loadedTexture8;
 uniform sampler2D loadedTexture9;
+uniform sampler2D testTexture;
 
 uniform uint gridThickness;
 uniform uvec4 screenParams;
@@ -103,7 +104,7 @@ vec4 getTextureColor(uint number, vec2 textureCoords)
 	default:
 		color = getTileColor(number);
 	}
-
+	//color = texture(testTexture, textureCoords);
 	return color;
 }
 
