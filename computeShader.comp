@@ -2,6 +2,7 @@
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout (binding = 1, r32ui) uniform uimage2D inputImage;
+layout (binding = 2, r32ui) uniform uimage2D entropyImage;
 
 const uint MAXIMUM_TILE_VALUES = 32;
 const uint MAXIMUM_RULES = 4;
@@ -15,7 +16,7 @@ uniform float random2;
 uniform uint TILE_VALUES;
 uniform bool SUDOKU;
 uniform uint RULES_AMOUNT;
-uniform ivec2 neighbours[4];
+uniform ivec2 neighbours[MAXIMUM_RULES];
 
 uint cellValue;
 uint chosenCellOldValue;
@@ -76,13 +77,7 @@ void useRules()
 {
 	if(!SUDOKU) // Regular rules
 	{
-		for (int i = 0; i < RULES_AMOUNT; i++)
-			{
-				if (currentCoords == chosenCoords + ivec2(rules[i][0], rules[i][1]))
-				{
-					cellValue = cellValue &  rules[i][2];
-				}
-			}
+		cellValue = cellValue &  rules[gl_GlobalInvocationID.x - 1][2];
 	}
 	else // Sudoku
 	{
@@ -158,6 +153,7 @@ void main()
 	if (currentCoords == chosenCoords)		// Give the chosen value to the chosen cell
 	{		
 		cellValue = chosenValue;
+		imageStore(entropyImage, currentCoords, uvec4(1, 0u, 0u, 0u));
 	}
 	else	// Use rules on other cells
 	{
@@ -176,6 +172,7 @@ void main()
 			uint i = atomicCounterIncrement(collapsedCellsAmount);
 			collapsedCells[i] = currentCoords;
 		}
+		imageStore(entropyImage, currentCoords, uvec4(newEntropy, 0u, 0u, 0u));
 	}
 
 	imageStore(inputImage, currentCoords, uvec4(cellValue, 0u, 0u, 0u));

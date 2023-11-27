@@ -181,13 +181,14 @@ char* concatenate(const char* c, int i)
 // Initialize the screen with a blank texture
 void initScreen()
 {
-	vector <int> arr(COMPUTE_WIDTH * COMPUTE_HEIGHT, pow(2, TILE_VALUES) - 1);
-
 	currentIteration = 0;
-	glTextureSubImage2D(computeTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &arr[0]);
-
 	CELL_DIVISION = ceil(sqrt(TILE_VALUES));
 
+	// Fill textures with initial values
+	vector <int> arr1(COMPUTE_WIDTH * COMPUTE_HEIGHT, pow(2, TILE_VALUES) - 1);
+	vector <int> arr2(COMPUTE_WIDTH * COMPUTE_HEIGHT, TILE_VALUES);
+	glTextureSubImage2D(computeTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &arr1[0]);
+	glTextureSubImage2D(entropyTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &arr2[0]);
 }
 
 void Render()
@@ -328,9 +329,6 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 {
 	uint startTime = getEpochTime();
 
-	// Set input and output textures
-	glBindImageTexture(1, computeTex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-	
 	// Buffers
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, collapsedCellsBuffer);
 	ivec2 collapsedCell = ivec2(-1, -1);
@@ -394,9 +392,6 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 
 void runComputeEntropyProgram()
 {
-	// Set input texture
-	glBindImageTexture(1, computeTex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-	
 	// Atomic Counter
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, minEntropyBuffer);
 	GLuint atomicCounter = TILE_VALUES;
@@ -416,8 +411,6 @@ void runComputeEntropyProgram()
 
 void runChooseTileValueProgram()
 {
-	// Set input texture
-	glBindImageTexture(1, computeTex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 
 	// Buffers
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, minEntropyCellsBuffer);
@@ -633,7 +626,7 @@ void initOpenGLObjects()
 
 	// Textures
 	initTexture(&computeTex, 1, GL_READ_WRITE, GL_R32UI);
-	initTexture(&entropyTex, 3, GL_READ_WRITE, GL_R32UI);
+	initTexture(&entropyTex, 2, GL_READ_WRITE, GL_R32UI);
 
 	for (int i = 0; i < textureLocations.size(); i++)
 	{
