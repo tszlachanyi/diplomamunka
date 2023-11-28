@@ -97,7 +97,7 @@
     <None Include="computeShader.comp">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="computeEntropyShader.comp">
+    <None Include="getMinEntropyShader.comp">
       <Filter>Shaders</Filter>
     </None>
     <None Include="chooseTileValueShader.comp">

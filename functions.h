@@ -144,7 +144,6 @@ vector<GLuint> possibleTiles(GLuint number)
 }
 
 // Get vector format of a GL_R32UI texture
-
 vector <GLuint> getTextureVector(GLuint texture)
 {
 	uint startTime = getEpochTime();
@@ -191,120 +190,6 @@ void initScreen()
 	glTextureSubImage2D(entropyTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &arr2[0]);
 }
 
-void Render()
-{
-	//// Imgui init
-	if (IMGUI)
-	{
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-	}
-
-	// Use compute program
-	glUseProgram(screenShaderProgram);
-
-	// Get the current computeTex to render
-	glBindImageTexture(1, computeTex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-
-	// Send externally loaded textures to gpu
-	for (int i = 0; i < loadedTextures.size(); i++)
-	{
-		glActiveTexture(GL_TEXTURE0+i);
-		glBindTexture(GL_TEXTURE_2D, loadedTextures[i]);
-		glUniform1i(glGetUniformLocation(screenShaderProgram, concatenate("loadedTexture", i)), i);
-		
-	}
-
-	glActiveTexture(GL_TEXTURE0 + loadedTextures.size());
-	glBindTexture(GL_TEXTURE_2D, testTexture);
-	glUniform1i(glGetUniformLocation(screenShaderProgram, "testTexture"), loadedTextures.size());
-
-	// Send uniforms
-	glUniform1ui(glGetUniformLocation(screenShaderProgram, "gridThickness"), GRID_THICKNESS);
-	glUniform4ui(glGetUniformLocation(screenShaderProgram, "screenParams"), SCREEN_WIDTH, SCREEN_HEIGHT, COMPUTE_WIDTH, COMPUTE_HEIGHT);
-	glUniform2ui(glGetUniformLocation(screenShaderProgram, "mouseCoords"), uint(mousexpos), uint(mouseypos));
-	glUniform1ui(glGetUniformLocation(screenShaderProgram, "DIVIDE_CELLS"), DIVIDE_CELLS);
-	glUniform1ui(glGetUniformLocation(screenShaderProgram, "CELL_DIVISION"), CELL_DIVISION);
-	glUniform1ui(glGetUniformLocation(screenShaderProgram, "TILE_VALUES"), TILE_VALUES);
-	glUniform1ui(glGetUniformLocation(screenShaderProgram, "COLOR_FROM_TEXTURE"), COLOR_FROM_TEXTURE);
-	glUniform1ui(glGetUniformLocation(screenShaderProgram, "SUDOKU"), SUDOKU);
-	glUniform4fv(glGetUniformLocation(screenShaderProgram, "colorVector"), MAXIMUM_TILE_VALUES, &colorVector[0][0]);
-	glBindVertexArray(VAO);
-
-	// Draw
-	glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_INT, 0);
-
-	// ImGUI
-	bool runwfc = false;
-	if (IMGUI)
-	{
-		ImGui::Begin("ImGUI window");
-		ImGui::SetWindowSize(ImVec2(500, 400));
-		ImGui::Checkbox("LOG ELAPSED TIMES", &LOG_ELAPSED_TIMES);
-		ImGui::Checkbox("DIVIDE CELLS", &DIVIDE_CELLS);
-		ImGui::Checkbox("COLOR FROM TEXTURE", &COLOR_FROM_TEXTURE);
-		ImGui::Checkbox("SUDOKU", &SUDOKU);
-		ImGui::Checkbox("RENDER DURING WFC", &RENDER_DURING_WFC);
-		ImGui::SliderInt("GRID THICKNESS", &GRID_THICKNESS, 0, 10);
-		if (ImGui::SliderInt("COMPUTE WIDTH", &COMPUTE_WIDTH, 1, 1024))
-		{
-			initOpenGLObjects();
-			initScreen();
-		}
-		if (ImGui::SliderInt("COMPUTE HEIGHT", &COMPUTE_HEIGHT, 1, 1024))
-		{
-			initOpenGLObjects();
-			initScreen();
-		}
-		if (ImGui::SliderInt("TILE VALUES", &TILE_VALUES, 1, 32))
-		{
-			CELL_DIVISION = ceil(sqrt(TILE_VALUES));
-			initOpenGLObjects();
-			initScreen();
-		}
-		
-		
-		if (ImGui::Button("Run Whole Algorithm (<-)"))
-		{
-			runwfc = true;
-			
-		}
-		if (ImGui::Button("Run One Iteration (->)"))
-		{
-			runOneIteration();
-		}
-		if (ImGui::Button("Restart (r)"))
-		{
-			initScreen();
-		}
-
-		if (ImGui::Button("Get rules from image"))
-		{
-			COLOR_FROM_TEXTURE = false;
-			getRulesFromTexture();
-			initOpenGLObjects();
-			initScreen();
-		}
-
-		ImGui::InputText("Input image location", ruleInputTextureLocation, sizeof(ruleInputTextureLocation));
-
-			
-		ImGui::End();
-		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-	}
-	
-
-	glfwSwapBuffers(window);
-	glfwPollEvents();
-
-	if (runwfc)
-	{
-		runWFC();
-	}
-}
-
 // Read data to CPU from an opengl buffer
 template <typename T>
 T* readBuffer(GLuint buffer, GLuint type, GLsizeiptr size)
@@ -316,18 +201,72 @@ T* readBuffer(GLuint buffer, GLuint type, GLsizeiptr size)
 	return ptr;
 }
 
-// Swap two pointers
-void swap(GLuint* a, GLuint* b)
+void runGetMinEntropyProgram()
 {
-	GLuint temp = *a;
-	*a = *b;
-	*b = temp;
+	// Atomic Counter
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, minEntropyBuffer);
+	GLuint atomicCounter = TILE_VALUES;
+	glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &atomicCounter);
+	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, minEntropyBuffer);
+
+	// Use compute shader
+	glUseProgram(getMinEntropyProgram);
+
+	// Send uniform values to compute shader
+	glUniform1ui(glGetUniformLocation(getMinEntropyProgram, "TILE_VALUES"), TILE_VALUES);
+
+	// Run compute shader
+	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+}
+
+void runChooseTileValueProgram()
+{
+
+	// Buffers
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, minEntropyCellsBuffer);
+	ivec2 minEntropyCells = ivec2(-1, -1);
+	glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &minEntropyCells);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, minEntropyCellsBuffer);
+
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, minEntropyCellsAmountBuffer);
+	GLuint minEntropyCellsAmount = 0;
+	glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &minEntropyCellsAmount);
+	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 2, minEntropyCellsAmountBuffer);
+
+	// Use compute shader
+	glUseProgram(chooseTileValueProgram);
+
+	// Send uniform values to compute shader
+	glUniform1ui(glGetUniformLocation(chooseTileValueProgram, "TILE_VALUES"), TILE_VALUES);
+
+	// Run compute shader
+	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 
 // Use compute shader to create next iteration in one of the computeTextures
 void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool manualCoords = false, bool manualValue = false)
 {
 	uint startTime = getEpochTime();
+
+	if (!manualCoords) // Get all cells with minimal entropy
+	{
+		// Calculate min entropy cells on gpu
+		runGetMinEntropyProgram();
+		runChooseTileValueProgram();
+
+		// Read minEntropyCellsAmount atomic counter
+		minEntropyCellsAmount = *(readBuffer <GLuint>(minEntropyCellsAmountBuffer, GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint)));
+
+		uint endTime = getEpochTime();
+		if (LOG_ELAPSED_TIMES) { cout << "Elapsed time for getting min entropy : " << endTime - startTime << " ms" << "\n"; }
+
+		if (minEntropyCellsAmount == 0)
+		{
+			return;
+		}
+	}
 
 	// Buffers
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, collapsedCellsBuffer);
@@ -364,10 +303,6 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 
 	currentIteration++;
 
-	// Print time
-	uint endTime = getEpochTime();
-	if (LOG_ELAPSED_TIMES) { cout << "currentIteration : " << currentIteration << "   -   " << "elapsed time : " << endTime - startTime << " ms \n"; }
-
 	// Read buffers
 	collapsedCellsAmount = *(readBuffer<GLuint>(collapsedCellsAmountBuffer, GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint)));
 
@@ -380,80 +315,16 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 		}
 	}
 
+	// Print time
+	uint endTime = getEpochTime();
+	if (LOG_ELAPSED_TIMES) { cout << "CurrentIteration : " << currentIteration << "   -   " << "Elapsed time : " << endTime - startTime << " ms \n"; }
+
 	// Reiterate if needed
 	if (collapsedCells.size() > collapsedCellIndex)
 	{
 		//cout << "reiterated " << collapsedCells[collapsedCellIndex].x << "   " << collapsedCells[collapsedCellIndex].y << "\n";
 		collapsedCellIndex += 1;
 		computeNext(collapsedCells[collapsedCellIndex - 1], 0, true, false);
-	}
-	
-}
-
-void runComputeEntropyProgram()
-{
-	// Atomic Counter
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, minEntropyBuffer);
-	GLuint atomicCounter = TILE_VALUES;
-	glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &atomicCounter);
-	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, minEntropyBuffer);
-
-	// Use compute shader
-	glUseProgram(computeEntropyProgram);
-	
-	// Send uniform values to compute shader
-	glUniform1ui(glGetUniformLocation(computeEntropyProgram, "TILE_VALUES"), TILE_VALUES);
-	
-	// Run compute shader
-	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
-	glMemoryBarrier(GL_ALL_BARRIER_BITS);
-}
-
-void runChooseTileValueProgram()
-{
-
-	// Buffers
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, minEntropyCellsBuffer);
-	ivec2 minEntropyCells = ivec2(-1,-1);
-	glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &minEntropyCells);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, minEntropyCellsBuffer);
-
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, minEntropyCellsAmountBuffer);
-	GLuint minEntropyCellsAmount = 0;
-	glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &minEntropyCellsAmount);
-	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 2, minEntropyCellsAmountBuffer);
-
-	// Use compute shader
-	glUseProgram(chooseTileValueProgram);
-
-	// Send uniform values to compute shader
-	glUniform1ui(glGetUniformLocation(chooseTileValueProgram, "TILE_VALUES"), TILE_VALUES);
-
-	// Run compute shader
-	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
-	glMemoryBarrier(GL_ALL_BARRIER_BITS);
-}
-
-void runOneIteration()
-{
-	uint startTime = getEpochTime();
-
-	// Find entropy values
-	runComputeEntropyProgram();
-
-	runChooseTileValueProgram();
-	
-
-	// Read atomic minEntropyCellsAmount counter
-	minEntropyCellsAmount = *(readBuffer <GLuint>(minEntropyCellsAmountBuffer, GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint)));
-
-	uint endTime = getEpochTime();
-	
-	if (LOG_ELAPSED_TIMES) { cout << "elapsed time for choosing cell : " << endTime - startTime << " ms" << "\n";}
-
-	if (minEntropyCellsAmount != 0)
-	{
-		computeNext();
 	}
 	
 }
@@ -465,13 +336,10 @@ void runWFC()
 	// Repeat until all cells are collapsed
 	while (true)
 	{
-		runOneIteration();
+		computeNext();
 		if (RENDER_DURING_WFC)
 		{
-			uint startTime = getEpochTime();
 			Render();
-			uint endTime = getEpochTime();
-			if (LOG_ELAPSED_TIMES) {cout << "elapsed time for rendering : " << endTime - startTime << " ms" << "\n";}
 		}
 	
 		if (minEntropyCellsAmount == 0)
@@ -497,7 +365,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		}
 		if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
 		{
-			runOneIteration();
+			computeNext();
 
 		}
 		if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
@@ -589,6 +457,120 @@ static void cursor_position_callback(GLFWwindow* window, double xpos, double ypo
 	;
 }
 
+void Render()
+{
+	//// Imgui init
+	if (IMGUI)
+	{
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+	}
+
+	// Use compute program
+	glUseProgram(screenShaderProgram);
+
+	// Get the current computeTex to render
+	glBindImageTexture(1, computeTex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+
+	// Send externally loaded textures to gpu
+	for (int i = 0; i < loadedTextures.size(); i++)
+	{
+		glActiveTexture(GL_TEXTURE0 + i);
+		glBindTexture(GL_TEXTURE_2D, loadedTextures[i]);
+		glUniform1i(glGetUniformLocation(screenShaderProgram, concatenate("loadedTexture", i)), i);
+
+	}
+
+	glActiveTexture(GL_TEXTURE0 + loadedTextures.size());
+	glBindTexture(GL_TEXTURE_2D, testTexture);
+	glUniform1i(glGetUniformLocation(screenShaderProgram, "testTexture"), loadedTextures.size());
+
+	// Send uniforms
+	glUniform1ui(glGetUniformLocation(screenShaderProgram, "gridThickness"), GRID_THICKNESS);
+	glUniform4ui(glGetUniformLocation(screenShaderProgram, "screenParams"), SCREEN_WIDTH, SCREEN_HEIGHT, COMPUTE_WIDTH, COMPUTE_HEIGHT);
+	glUniform2ui(glGetUniformLocation(screenShaderProgram, "mouseCoords"), uint(mousexpos), uint(mouseypos));
+	glUniform1ui(glGetUniformLocation(screenShaderProgram, "DIVIDE_CELLS"), DIVIDE_CELLS);
+	glUniform1ui(glGetUniformLocation(screenShaderProgram, "CELL_DIVISION"), CELL_DIVISION);
+	glUniform1ui(glGetUniformLocation(screenShaderProgram, "TILE_VALUES"), TILE_VALUES);
+	glUniform1ui(glGetUniformLocation(screenShaderProgram, "COLOR_FROM_TEXTURE"), COLOR_FROM_TEXTURE);
+	glUniform1ui(glGetUniformLocation(screenShaderProgram, "SUDOKU"), SUDOKU);
+	glUniform4fv(glGetUniformLocation(screenShaderProgram, "colorVector"), MAXIMUM_TILE_VALUES, &colorVector[0][0]);
+	glBindVertexArray(VAO);
+
+	// Draw
+	glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_INT, 0);
+
+	// ImGUI
+	bool runwfc = false;
+	if (IMGUI)
+	{
+		ImGui::Begin("ImGUI window");
+		ImGui::SetWindowSize(ImVec2(500, 400));
+		ImGui::Checkbox("LOG ELAPSED TIMES", &LOG_ELAPSED_TIMES);
+		ImGui::Checkbox("DIVIDE CELLS", &DIVIDE_CELLS);
+		ImGui::Checkbox("COLOR FROM TEXTURE", &COLOR_FROM_TEXTURE);
+		ImGui::Checkbox("SUDOKU", &SUDOKU);
+		ImGui::Checkbox("RENDER DURING WFC", &RENDER_DURING_WFC);
+		ImGui::SliderInt("GRID THICKNESS", &GRID_THICKNESS, 0, 10);
+		if (ImGui::SliderInt("COMPUTE WIDTH", &COMPUTE_WIDTH, 1, 1024))
+		{
+			initOpenGLObjects();
+			initScreen();
+		}
+		if (ImGui::SliderInt("COMPUTE HEIGHT", &COMPUTE_HEIGHT, 1, 1024))
+		{
+			initOpenGLObjects();
+			initScreen();
+		}
+		if (ImGui::SliderInt("TILE VALUES", &TILE_VALUES, 1, 32))
+		{
+			CELL_DIVISION = ceil(sqrt(TILE_VALUES));
+			initOpenGLObjects();
+			initScreen();
+		}
+
+
+		if (ImGui::Button("Run Whole Algorithm (<-)"))
+		{
+			runwfc = true;
+
+		}
+		if (ImGui::Button("Run One Iteration (->)"))
+		{
+			computeNext();
+		}
+		if (ImGui::Button("Restart (r)"))
+		{
+			initScreen();
+		}
+
+		if (ImGui::Button("Get rules from image"))
+		{
+			COLOR_FROM_TEXTURE = false;
+			getRulesFromTexture();
+			initOpenGLObjects();
+			initScreen();
+		}
+
+		ImGui::InputText("Input image location", ruleInputTextureLocation, sizeof(ruleInputTextureLocation));
+
+
+		ImGui::End();
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+	}
+
+
+	glfwSwapBuffers(window);
+	glfwPollEvents();
+
+	if (runwfc)
+	{
+		runWFC();
+	}
+}
+
 void initOpenGLObjects()
 {
 	// Buffers
@@ -637,7 +619,7 @@ void initOpenGLObjects()
 
 	// Shaders, programs
 	initShaderProgram({ GL_COMPUTE_SHADER }, { "computeShader.comp" }, { &computeShader }, &computeProgram);
-	initShaderProgram({ GL_COMPUTE_SHADER }, { "computeEntropyShader.comp" }, { &computeEntropyShader }, &computeEntropyProgram);
+	initShaderProgram({ GL_COMPUTE_SHADER }, { "getMinEntropyShader.comp" }, { &getMinEntropyShader }, &getMinEntropyProgram);
 	initShaderProgram({ GL_COMPUTE_SHADER }, { "chooseTileValueShader.comp" }, { &chooseTileValueShader }, &chooseTileValueProgram);
 	initShaderProgram({ GL_VERTEX_SHADER , GL_FRAGMENT_SHADER }, { "vertexShader.vert","fragmentShader.frag" }, { &screenVertexShader,&screenFragmentShader }, &screenShaderProgram);
 }

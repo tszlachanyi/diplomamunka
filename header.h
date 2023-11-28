@@ -33,8 +33,8 @@ const unsigned short OPENGL_MINOR_VERSION = 6;
 const unsigned int SCREEN_WIDTH = 1024;
 const unsigned int SCREEN_HEIGHT = 1024;
 
-int COMPUTE_WIDTH = 9;
-int COMPUTE_HEIGHT = 9;
+int COMPUTE_WIDTH = 16;
+int COMPUTE_HEIGHT = 16;
 
 vector <ivec2> neighbours = { ivec2(0,1), ivec2(1, 0), ivec2(0, -1), ivec2(-1,0) };
 const unsigned int MAXIMUM_RULES = 4;				// You also have to set it in compute shader
@@ -69,13 +69,13 @@ char ruleInputTextureLocation[40] = "textures/testTexture1.png";
 GLuint screenVertexShader;
 GLuint screenFragmentShader;
 GLuint computeShader;
-GLuint computeEntropyShader;
+GLuint getMinEntropyShader;
 GLuint chooseTileValueShader;
 GLuint getTilesFromTextureShader;
 
 GLuint screenShaderProgram;
 GLuint computeProgram;
-GLuint computeEntropyProgram;
+GLuint getMinEntropyProgram;
 GLuint chooseTileValueProgram;
 
 GLuint minEntropyBuffer;
@@ -100,7 +100,7 @@ uint collapsedCellIndex = 0;
 
 double mousexpos, mouseypos;
 
-void runOneIteration();
+void Render();
 void runWFC();
 
 void initOpenGLObjects();

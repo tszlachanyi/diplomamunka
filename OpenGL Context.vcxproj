@@ -180,7 +180,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="chooseTileValueShader.comp" />
-    <None Include="computeEntropyShader.comp" />
+    <None Include="getMinEntropyShader.comp" />
     <None Include="computeShader.comp" />
     <None Include="fragmentShader.frag" />
     <None Include="getTilesFromTexture.comp" />

@@ -24,7 +24,4 @@ void main()
 		uint i = atomicCounterIncrement(minEntropyCellsAmount);
 		minEntropyCells[i] = pixelCoords;
 	}
-	
-	
-
 }
