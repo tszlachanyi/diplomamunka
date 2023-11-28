@@ -2,3 +2,4 @@ C:\Users\Tade\Downloads\opengl-tutorials-main\opengl-tutorials-main\Compute Shad
 C:\Users\Tade\Desktop\random\compute-shader-test\opengl-tutorials-main\Compute Shaders\x64\Debug\Wave Function Collapse.exe
 C:\Users\Tade\Desktop\random\Wave Function Collapse\x64\Debug\Wave Function Collapse.exe
 C:\Users\Tade\Desktop\random\test\diplomamunka\x64\Debug\Wave Function Collapse.exe
+C:\Users\Tade\Desktop\Diplomamunka\x64\Debug\Wave Function Collapse.exe

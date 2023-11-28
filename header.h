@@ -29,8 +29,11 @@ const unsigned int SCREEN_HEIGHT = 1024;
 const unsigned int COMPUTE_WIDTH = 16;
 const unsigned int COMPUTE_HEIGHT = 16;
 
-const unsigned int MAXIMUM_RULES = 100;
 const unsigned int TILE_VALUES = 4;
+
+const unsigned int MAXIMUM_RULES = 4;
+vector <ivec2> neighbours = { ivec2(0,1), ivec2(1, 0), ivec2(0, -1), ivec2(-1,0) };
+int RULES_AMOUNT = neighbours.size();
 
 const unsigned int GRID_THICKNESS = 2;
 
@@ -38,6 +41,7 @@ const bool DIVIDE_CELLS = true;
 const unsigned int CELL_DIVISION = 2;
 
 const bool RENDER_DURING_WFC = true;
+bool LOG_ELAPSED_TIMES = false;
 
 bool vSync = false;
 

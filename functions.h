@@ -237,7 +237,13 @@ void initScreen()
 		for (int j = 0; j < COMPUTE_HEIGHT; j++)
 		{
 			grid[i][j] = v;
+			
 		}
+	}
+
+	for (int i = 0; i < COMPUTE_WIDTH * COMPUTE_HEIGHT; i++)
+	{
+		entropyVector[i] = TILE_VALUES;
 	}
 
 	currentIteration = 0;
@@ -248,11 +254,11 @@ void initScreen()
 
 
 // Use compute shader to create screenTex2 from current screenTex1
-void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = false)
+void computeNext(ivec2 coordinates, GLuint chosenValue = 0, bool manualValue = false)
 {
 	uint startTime = getEpochTime();
 	GLuint currentValue = textureVector[matrixToVecCoords(coordinates)];
-	vector<vec2> collapsedTiles;
+	vector<ivec2> collapsedTiles;
 
 	// Choose which value to give to the cell
 
@@ -263,48 +269,52 @@ void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = fa
 		int r = rand() % possibleValues.size();
 		chosenValue = pow(2, possibleValues[r]);
 
+		entropyVector[matrixToVecCoords(coordinates)] = 1;
 		
 	}
 	int tile = tileValue(chosenValue);
 
 
 	// Get which tiles are affected by the rules (and are not collapsed already)
-	for  (int i = 0; i < rules[tile].size(); i++)
-	{
-		vec2 affectedTile = coordinates + vec2(rules[tile][i][0], rules[tile][i][1]);
-		if (isInsideGrid(affectedTile))
-		{
-			if (possibleTiles(textureVector[matrixToVecCoords(affectedTile)]).size() > 1)
-			{
-				collapsedTiles.push_back(affectedTile);
-			}
-		}
-
-	}
+	//for  (int i = 0; i < rules[tile].size(); i++)
+	//{
+	//	ivec2 affectedTile = coordinates + neighbours[i];
+	//	if (isInsideGrid(affectedTile))
+	//	{
+	//		if (possibleTiles(textureVector[matrixToVecCoords(affectedTile)]).size() > 1)
+	//		{
+	//			collapsedTiles.push_back(affectedTile);
+	//		}
+	//	}
+	//
+	//}
 
 	// Deep copy the values from grid to previousGrid
-	for (int i = 0; i < COMPUTE_WIDTH; i++)
-	{
-		for (int j = 0; j < COMPUTE_HEIGHT; j++)
-		{
-			previousGrid[i][j] = grid[i][j];
-		}
-	}
+	//for (int i = 0; i < COMPUTE_WIDTH; i++)
+	//{
+	//	for (int j = 0; j < COMPUTE_HEIGHT; j++)
+	//	{
+	//		previousGrid[i][j] = grid[i][j];
+	//	}
+	//}
 
 	// Compute new grid values
 	grid[coordinates.x][coordinates.y] = chosenValue;
-
-	for (int i = 0; i < COMPUTE_WIDTH; i++)
+	for (int i = 0; i < RULES_AMOUNT; i++)
 	{
-		for (int j = 0; j < COMPUTE_HEIGHT; j++)
+		ivec2 currentCoords = coordinates + neighbours[i];
+		if (isInsideGrid(currentCoords))
 		{
-			for (int rule = 0; rule < rules[tile].size(); rule++)
+			// Grid value
+			grid[currentCoords.x][currentCoords.y] = grid[currentCoords.x][currentCoords.y] & rules[tile][i][2];
+
+			// Entropy value
+			uint oldEntropy = entropyVector[matrixToVecCoords(currentCoords)];
+			uint newEntropy = possibleTiles(grid[currentCoords.x][currentCoords.y]).size();
+			entropyVector[matrixToVecCoords(currentCoords)] = newEntropy;
+			if (oldEntropy != 1 && newEntropy == 1)
 			{
-				if (vec2(i, j) == coordinates + vec2(rules[tile][rule][0], rules[tile][rule][1]))
-				{
-					//cout << i << "  " << j << endl;
-					grid[i][j] = previousGrid[i][j] & rules[tile][rule][2];
-				}
+				collapsedTiles.push_back(currentCoords);
 			}
 		}
 	}
@@ -315,7 +325,7 @@ void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = fa
 
 	// Print time
 	uint endTime = getEpochTime();
-	cout << "currentIteration : " << currentIteration << "   -   " << "elapsed time : " << endTime - startTime << " ms" << endl;
+	if (LOG_ELAPSED_TIMES) { cout << "currentIteration : " << currentIteration << "   -   " << "elapsed time : " << endTime - startTime << " ms" << endl; }
 
 	// New iteration if collapsed a tile
 	for (int i = 0; i < collapsedTiles.size(); i++)
@@ -328,13 +338,6 @@ void computeNext(vec2 coordinates, GLuint chosenValue = 0, bool manualValue = fa
 void runOneIteration()
 {
 	uint startTime = getEpochTime();
-
-	// Find entropy values
-	for (int i = 0; i < COMPUTE_WIDTH * COMPUTE_HEIGHT; i++)
-	{
-		GLuint cellValue = textureVector[i];
-		entropyVector[i] = possibleTiles(cellValue).size();
-	}
 
 	// Find minimum entropy
 	GLuint minEntropy = TILE_VALUES + 1;
@@ -366,7 +369,7 @@ void runOneIteration()
 		vec2 chosenCoords = minCoords[r];
 
 		uint endTime = getEpochTime();
-		cout << "elapsed time for choosing cell : " << endTime - startTime << " ms" << endl;
+		if (LOG_ELAPSED_TIMES) { cout << "elapsed time for choosing cell : " << endTime - startTime << " ms" << endl; }
 
 		// Collapse cell
 		computeNext(chosenCoords);
@@ -383,10 +386,7 @@ void runWFC()
 		runOneIteration();
 		if (RENDER_DURING_WFC)
 		{
-			uint startTime = getEpochTime();
 			Render();
-			uint endTime = getEpochTime();
-			cout << "elapsed time for rendering : " << endTime - startTime << " ms" << endl;
 		}
 	
 		if (uncollapsedAmount() == 0)
