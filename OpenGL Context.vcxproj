@@ -179,11 +179,10 @@
     <ClInclude Include="libraries\include\imgui\imstb_truetype.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="chooseTileValueShader.comp" />
+    <None Include="getMinEntropyCellsShader.comp" />
     <None Include="getMinEntropyShader.comp" />
     <None Include="computeShader.comp" />
     <None Include="fragmentShader.frag" />
-    <None Include="getTilesFromTexture.comp" />
     <None Include="vertexShader.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

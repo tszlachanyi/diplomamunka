@@ -70,13 +70,13 @@ GLuint screenVertexShader;
 GLuint screenFragmentShader;
 GLuint computeShader;
 GLuint getMinEntropyShader;
-GLuint chooseTileValueShader;
+GLuint getMinEntropyCellsShader;
 GLuint getTilesFromTextureShader;
 
 GLuint screenShaderProgram;
 GLuint computeProgram;
 GLuint getMinEntropyProgram;
-GLuint chooseTileValueProgram;
+GLuint getMinEntropyCellsProgram;
 
 GLuint minEntropyBuffer;
 GLuint minEntropyCellsBuffer;

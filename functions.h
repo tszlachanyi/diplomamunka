@@ -220,7 +220,7 @@ void runGetMinEntropyProgram()
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 
-void runChooseTileValueProgram()
+void runGetMinEntropyCellsProgram()
 {
 
 	// Buffers
@@ -235,10 +235,10 @@ void runChooseTileValueProgram()
 	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 2, minEntropyCellsAmountBuffer);
 
 	// Use compute shader
-	glUseProgram(chooseTileValueProgram);
+	glUseProgram(getMinEntropyCellsProgram);
 
 	// Send uniform values to compute shader
-	glUniform1ui(glGetUniformLocation(chooseTileValueProgram, "TILE_VALUES"), TILE_VALUES);
+	glUniform1ui(glGetUniformLocation(getMinEntropyCellsProgram, "TILE_VALUES"), TILE_VALUES);
 
 	// Run compute shader
 	glDispatchCompute(COMPUTE_WIDTH, COMPUTE_HEIGHT, 1);
@@ -249,12 +249,13 @@ void runChooseTileValueProgram()
 void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool manualCoords = false, bool manualValue = false)
 {
 	uint startTime = getEpochTime();
-
-	if (!manualCoords) // Get all cells with minimal entropy
+	
+	// Get all cells with minimal entropy
+	if (!manualCoords) 
 	{
 		// Calculate min entropy cells on gpu
 		runGetMinEntropyProgram();
-		runChooseTileValueProgram();
+		runGetMinEntropyCellsProgram();
 
 		// Read minEntropyCellsAmount atomic counter
 		minEntropyCellsAmount = *(readBuffer <GLuint>(minEntropyCellsAmountBuffer, GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint)));
@@ -268,7 +269,7 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 		}
 	}
 
-	// Buffers
+	// Fill Buffers
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, collapsedCellsBuffer);
 	ivec2 collapsedCell = ivec2(-1, -1);
 	glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &collapsedCell);
@@ -620,7 +621,7 @@ void initOpenGLObjects()
 	// Shaders, programs
 	initShaderProgram({ GL_COMPUTE_SHADER }, { "computeShader.comp" }, { &computeShader }, &computeProgram);
 	initShaderProgram({ GL_COMPUTE_SHADER }, { "getMinEntropyShader.comp" }, { &getMinEntropyShader }, &getMinEntropyProgram);
-	initShaderProgram({ GL_COMPUTE_SHADER }, { "chooseTileValueShader.comp" }, { &chooseTileValueShader }, &chooseTileValueProgram);
+	initShaderProgram({ GL_COMPUTE_SHADER }, { "getMinEntropyCellsShader.comp" }, { &getMinEntropyCellsShader }, &getMinEntropyCellsProgram);
 	initShaderProgram({ GL_VERTEX_SHADER , GL_FRAGMENT_SHADER }, { "vertexShader.vert","fragmentShader.frag" }, { &screenVertexShader,&screenFragmentShader }, &screenShaderProgram);
 }
 
@@ -649,12 +650,6 @@ int findElementIndexInVector(vector<T> v, T element)
 		}
 	}
 	return -1;
-}
-
-
-void print(vec4 v)
-{
-	cout << v[0]<< " " << v[1] << " " << v[2] << " " << v[3] << "\n";
 }
 
 

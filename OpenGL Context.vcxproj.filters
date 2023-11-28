@@ -100,10 +100,7 @@
     <None Include="getMinEntropyShader.comp">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="chooseTileValueShader.comp">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="getTilesFromTexture.comp">
+    <None Include="getMinEntropyCellsShader.comp">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
