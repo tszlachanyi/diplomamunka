@@ -1,6 +1,3 @@
-// TODO :
-// MAXIMUM RULES TÖNKRETESZI! BUFFERBEN TÖBBDIMENZIÓS ARRAY HELYETT 1 DIMENZIÓS
-
 #include <iostream>
 #include <chrono>
 #include <algorithm>
@@ -33,11 +30,11 @@ const unsigned short OPENGL_MINOR_VERSION = 6;
 const unsigned int SCREEN_WIDTH = 1024;
 const unsigned int SCREEN_HEIGHT = 1024;
 
-int COMPUTE_WIDTH = 16;
-int COMPUTE_HEIGHT = 16;
+int COMPUTE_WIDTH = 8;
+int COMPUTE_HEIGHT = 8;
 
 vector <ivec2> neighbours = { ivec2(0,1), ivec2(1, 0), ivec2(0, -1), ivec2(-1,0) };
-const unsigned int MAXIMUM_RULES = 4;				// You also have to set it in compute shader
+const unsigned int MAXIMUM_RULES = 16;				// You also have to set it in compute shader
 const unsigned int MAXIMUM_TILE_VALUES = 32;		// You also have to set it in compute shader
 int RULES_AMOUNT = neighbours.size();
 int TILE_VALUES = 4;

@@ -708,6 +708,7 @@ void getRulesFromTexture()
 	{
 		for (int j = 0; j < neighbours.size(); j++)
 		{
+			
 			if (TILE_VALUES > i && neighbours.size() > j)
 			{
 				rules[i][j][0] = neighbours[j][0];
@@ -720,6 +721,7 @@ void getRulesFromTexture()
 				rules[i][j][1] = 0;
 				rules[i][j][2] = 0;
 			}
+			
 			
 		}
 	}
@@ -750,9 +752,22 @@ void getRulesFromTexture()
 	}
 
 	// 6. Send rules to ssbo
+	int rulesArray[MAXIMUM_TILE_VALUES * MAXIMUM_RULES * 3];
+	for (int i = 0; i < TILE_VALUES; i++)
+	{
+		for (int j = 0; j < RULES_AMOUNT; j++)
+		{
+			
+			for (int k = 0; k < 3; k++)
+			{
+				
+				rulesArray[(i * RULES_AMOUNT * 3) + j * 3 + k] = rules[i][j][k];
+			}
+		}
+	}
 	glGenBuffers(1, &rulesBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, rulesBuffer);
-	glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(int) * MAXIMUM_TILE_VALUES * MAXIMUM_RULES * 3, rules, 0);
+	glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(int) * MAXIMUM_TILE_VALUES * MAXIMUM_RULES * 3, rulesArray, 0);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, rulesBuffer);
 
 	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, rulesBuffer);
@@ -774,4 +789,7 @@ void getRulesFromTexture()
 			cout << rules[i][j][0] << "   " << rules[i][j][1] << "   " << rules[i][j][2] << "   " << "\n";
 		}
 	}
+
+	cout << RULES_AMOUNT << "\n";
+	cout << TILE_VALUES << "\n";
 }

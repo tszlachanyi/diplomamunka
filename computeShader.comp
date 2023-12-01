@@ -5,7 +5,7 @@ layout (binding = 1, r32ui) uniform uimage2D inputImage;
 layout (binding = 2, r32ui) uniform uimage2D entropyImage;
 
 const uint MAXIMUM_TILE_VALUES = 32;
-const uint MAXIMUM_RULES = 4;
+const uint MAXIMUM_RULES = 16;
 
 uniform uint userChosenValue;
 uniform ivec2 userChosenCoords;
@@ -44,12 +44,16 @@ layout(binding = 3) buffer collapsedCellsBuffer
 layout(binding = 4) uniform atomic_uint collapsedCellsAmount;
 
 
-uint rules[MAXIMUM_RULES][3];
-
 layout(binding = 5) buffer rulesBuffer
 {
-    uint allRules[MAXIMUM_TILE_VALUES][MAXIMUM_RULES][3];
+    uint allRules[MAXIMUM_TILE_VALUES * MAXIMUM_RULES * 3];
 };
+
+uint getRule(uint x, uint y, uint z)
+{
+	
+	return allRules[(x * RULES_AMOUNT * 3) + y * 3 + z];
+}
 
 
 uint nthBit(uint number, uint n)
@@ -77,7 +81,7 @@ void useRules()
 {
 	if(!SUDOKU) // Regular rules
 	{
-		cellValue = cellValue &  rules[gl_GlobalInvocationID.x - 1][2];
+		cellValue = cellValue & getRule(chosenTileIndex , gl_GlobalInvocationID.x - 1 , 2);
 	}
 	else // Sudoku
 	{
@@ -146,8 +150,6 @@ void main()
 		chosenTileIndex = tileArray[uint(floor(random2 * entropy))];
 		chosenValue = uint(pow(2, chosenTileIndex));
 	}
-
-	rules = allRules[chosenTileIndex];
 
 	// Calculate output value
 	if (currentCoords == chosenCoords)		// Give the chosen value to the chosen cell
