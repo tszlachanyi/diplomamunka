@@ -9,6 +9,7 @@
 #include <bitset>		
 #include <array>
 #include <cmath>
+#include <thread>
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_opengl3.h"
@@ -33,7 +34,8 @@ const unsigned int SCREEN_HEIGHT = 1024;
 int COMPUTE_WIDTH = 8;
 int COMPUTE_HEIGHT = 8;
 
-vector <ivec2> neighbours = { ivec2(0,1), ivec2(1, 0), ivec2(0, -1), ivec2(-1,0) };
+//vector <ivec2> neighbours = { ivec2(0,1), ivec2(1, 0), ivec2(0, -1), ivec2(-1,0), ivec2(-1,1)  , ivec2(-1,-1)  ,ivec2(1,1)  ,ivec2(1,-1) };
+vector <ivec2> neighbours = { ivec2(0,1), ivec2(1, 0), ivec2(0, -1), ivec2(-1,0)};
 const unsigned int MAXIMUM_RULES = 16;				// You also have to set it in compute shader
 const unsigned int MAXIMUM_TILE_VALUES = 32;		// You also have to set it in compute shader
 int RULES_AMOUNT = neighbours.size();
@@ -41,9 +43,10 @@ int TILE_VALUES = 4;
 
 
 int GRID_THICKNESS = 2;
-
 bool DIVIDE_CELLS = true;
 unsigned int CELL_DIVISION = ceil(sqrt(TILE_VALUES));
+
+int SPEED = 1000;
 
 bool RENDER_DURING_WFC = true;
 bool LOG_ELAPSED_TIMES = false;
@@ -94,6 +97,8 @@ GLint currentIteration = 0;
 
 vector<ivec2> collapsedCells = {};
 uint collapsedCellIndex = 0;
+
+bool stop = false;
 
 double mousexpos, mouseypos;
 

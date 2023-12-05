@@ -343,10 +343,18 @@ void runWFC()
 			Render();
 		}
 	
-		if (minEntropyCellsAmount == 0)
+		if (minEntropyCellsAmount == 0 || stop == true)
 		{
+			stop = false;
 			break;
 		}
+
+		if (SPEED > 0 && 1000 > SPEED)
+		{
+			chrono::milliseconds duration(1000-SPEED);
+			this_thread::sleep_for(duration);
+		}
+		
 			
 	}
 
@@ -514,6 +522,7 @@ void Render()
 		ImGui::Checkbox("SUDOKU", &SUDOKU);
 		ImGui::Checkbox("RENDER DURING WFC", &RENDER_DURING_WFC);
 		ImGui::SliderInt("GRID THICKNESS", &GRID_THICKNESS, 0, 10);
+		ImGui::SliderInt("ALGORITHM SPEED", &SPEED, 1, 1000);
 		if (ImGui::SliderInt("COMPUTE WIDTH", &COMPUTE_WIDTH, 1, 1024))
 		{
 			initOpenGLObjects();
@@ -544,6 +553,10 @@ void Render()
 		if (ImGui::Button("Restart (r)"))
 		{
 			initScreen();
+		}
+		if (ImGui::Button("Stop"))
+		{
+			stop = true;
 		}
 
 		if (ImGui::Button("Get rules from image"))
