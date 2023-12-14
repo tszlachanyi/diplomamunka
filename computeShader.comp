@@ -15,7 +15,7 @@ uniform float random1;
 uniform float random2;
 uniform uint TILE_VALUES;
 uniform bool SUDOKU;
-uniform uint RULES_AMOUNT;
+uniform uint NEIGHBOURS_AMOUNT;
 uniform ivec2 neighbours[MAXIMUM_RULES];
 
 uint cellValue;
@@ -46,13 +46,13 @@ layout(binding = 4) uniform atomic_uint collapsedCellsAmount;
 
 layout(binding = 5) buffer rulesBuffer
 {
-    uint allRules[MAXIMUM_TILE_VALUES * MAXIMUM_RULES * 3];
+    uint allRules[MAXIMUM_TILE_VALUES * MAXIMUM_RULES];
 };
 
-uint getRule(uint x, uint y, uint z)
+uint getRule(uint x, uint y)
 {
 	
-	return allRules[(x * RULES_AMOUNT * 3) + y * 3 + z];
+	return allRules[(x * NEIGHBOURS_AMOUNT) + y];
 }
 
 
@@ -81,7 +81,7 @@ void useRules()
 {
 	if(!SUDOKU) // Regular rules
 	{
-		cellValue = cellValue & getRule(chosenTileIndex , gl_GlobalInvocationID.x - 1 , 2);
+		cellValue = cellValue & getRule(chosenTileIndex , gl_GlobalInvocationID.x - 1);
 	}
 	else // Sudoku
 	{

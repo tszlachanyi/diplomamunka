@@ -295,15 +295,15 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 	glUniform1f(glGetUniformLocation(computeProgram, "random2"), random2);
 	glUniform1ui(glGetUniformLocation(computeProgram, "TILE_VALUES"), TILE_VALUES);
 	glUniform1ui(glGetUniformLocation(computeProgram, "SUDOKU"), SUDOKU);
-	glUniform1ui(glGetUniformLocation(computeProgram, "RULES_AMOUNT"), RULES_AMOUNT);
-	if (RULES_AMOUNT != 0)
+	glUniform1ui(glGetUniformLocation(computeProgram, "NEIGHBOURS_AMOUNT"), NEIGHBOURS_AMOUNT);
+	if (NEIGHBOURS_AMOUNT != 0)
 	{
-		glUniform2iv(glGetUniformLocation(computeProgram, "neighbours"), RULES_AMOUNT, &neighbours[0].x);
+		glUniform2iv(glGetUniformLocation(computeProgram, "neighbours"), NEIGHBOURS_AMOUNT, &neighbours[0].x);
 	}
 	
 
 	// Run compute shader
-	glDispatchCompute(RULES_AMOUNT + 1, 1, 1);
+	glDispatchCompute(NEIGHBOURS_AMOUNT + 1, 1, 1);
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 	currentIteration++;
@@ -395,6 +395,22 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 }
 
+// Print the 2 bit representation of an integer
+void print2bit(int number)
+{
+	vector<bool> bits(TILE_VALUES);
+
+	// Extract the bits from the integer and store them in the vector
+	for (int i = 0; i < TILE_VALUES; ++i) {
+		bits[i] = (number & (1 << i)) != 0;
+	}
+
+	// Print the bits
+	for (int i = TILE_VALUES - 1; i >= 0; --i) {
+		std::cout << bits[i];
+	}
+}
+
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
 	ImGuiIO& io = ImGui::GetIO();
@@ -440,19 +456,8 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 			cout << " (" << coords.x << " , " << coords.y << ")  ";
 			textureVector = getTextureVector(computeTex);
 
-			std::vector<bool> bits(TILE_VALUES);
-
 			int number = textureVector[matrixToVecCoords(coords)];
-
-			// Extract the bits from the integer and store them in the vector
-			for (int i = 0; i < TILE_VALUES; ++i) {
-				bits[i] = (number & (1 << i)) != 0;
-			}
-
-			// Print the bits
-			for (int i = TILE_VALUES - 1; i >= 0; --i) {
-				std::cout << bits[i];
-			}
+			print2bit(number);
 			std::cout << "\n";
 
 			//cout << possibleTiles((textureVector[matrixToVecCoords(coords)])).size() << "\n";
@@ -618,7 +623,7 @@ void initOpenGLObjects()
 	{
 		glGenBuffers(1, &rulesBuffer);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, rulesBuffer);
-		glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(int) * TILE_VALUES * 4 * 3, allRules, 0);
+		glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(int) * TILE_VALUES * NEIGHBOURS_AMOUNT, allRules, 0);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, rulesBuffer);
 	
 		firstCall = false;
@@ -678,7 +683,6 @@ void getRulesFromTexture()
 	// 2. Convert it into matrix
 	int width = params[0];
 	int height = params[1];
-	cout << width << " " << height << "\n";
 	vector <GLubyte> v (width * height * 4);
 	glBindTexture(GL_TEXTURE_2D, inputTexture);
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, &v[0]);
@@ -711,39 +715,12 @@ void getRulesFromTexture()
 			}
 		}
 	}
-	
-	for (int i = 0; i < tiles.size(); i++)
-	{
-		cout << tiles[i].x << "   " << tiles[i].y << "   " << tiles[i].z << "   " << "\n";
-	}
 
 	TILE_VALUES = tiles.size();
 	
-	// 4. Fill rules with zero values
-	int rules[MAXIMUM_TILE_VALUES][MAXIMUM_RULES][3];
-	for (int i = 0; i < TILE_VALUES; i++)
-	{
-		for (int j = 0; j < neighbours.size(); j++)
-		{
-			
-			if (TILE_VALUES > i && neighbours.size() > j)
-			{
-				rules[i][j][0] = neighbours[j][0];
-				rules[i][j][1] = neighbours[j][1];
-				rules[i][j][2] = 0;
-			}
-			else
-			{
-				rules[i][j][0] = 0;
-				rules[i][j][1] = 0;
-				rules[i][j][2] = 0;
-			}
-			
-			
-		}
-	}
+	// 4. Get rules from the image
+	int rules[MAXIMUM_TILE_VALUES][MAXIMUM_RULES] = { {0} };
 
-	// 5. Get rules from the image
 	for (int i = 0; i < width; i++)
 	{
 		for (int j = 0; j < height; j++)
@@ -762,51 +739,64 @@ void getRulesFromTexture()
 					uint neighbourTileNumber = findElementIndexInVector(tiles, neighbourPixel);
 					uint neighbourTileValue = pow(2, neighbourTileNumber);
 
-					rules[tileNumber][k][2] = rules[tileNumber][k][2] | neighbourTileValue;
+					rules[tileNumber][k] = rules[tileNumber][k] | neighbourTileValue;
 				}
 			}
 		}
 	}
 
-	// 6. Send rules to ssbo
-	int rulesArray[MAXIMUM_TILE_VALUES * MAXIMUM_RULES * 3];
+	// 5. Send rules to ssbo
+	int rulesArray[MAXIMUM_TILE_VALUES * MAXIMUM_RULES];
 	for (int i = 0; i < TILE_VALUES; i++)
 	{
-		for (int j = 0; j < RULES_AMOUNT; j++)
+		for (int j = 0; j < NEIGHBOURS_AMOUNT; j++)
 		{
 			
-			for (int k = 0; k < 3; k++)
-			{
-				
-				rulesArray[(i * RULES_AMOUNT * 3) + j * 3 + k] = rules[i][j][k];
-			}
+			rulesArray[(i * NEIGHBOURS_AMOUNT) + j] = rules[i][j];
 		}
 	}
 	glGenBuffers(1, &rulesBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, rulesBuffer);
-	glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(int) * MAXIMUM_TILE_VALUES * MAXIMUM_RULES * 3, rulesArray, 0);
+	glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(int) * MAXIMUM_TILE_VALUES * MAXIMUM_RULES, rulesArray, 0);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, rulesBuffer);
 
 	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, rulesBuffer);
 	//glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32UI, GL_RED, GL_INT, rules);
 	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, rulesBuffer);
 
-	// 7. Set read colors into colorsVector
+	// 6. Set read colors into colorsVector
 	for (int i = 0; i < TILE_VALUES; i++)
 	{
 		colorVector[i] = tiles[i];
 	}
 	 
 	
-	// Print rules
+	// 7. Print extracted colors, rules
+	cout << "Extracted colors" << "\n";
+	for (int i = 0; i < tiles.size(); i++)
+	{
+		cout << "Tile " << i + 1 << " : ";
+		cout << tiles[i].x << "   " << tiles[i].y << "   " << tiles[i].z << "   " << "\n";
+	}
+	cout << "\n";
+
+	cout << "Extracted rules" << "\n";
+	cout << "Neighbours : ";
+	for (int i = 0; i < NEIGHBOURS_AMOUNT; i++)
+	{
+		cout << "(" << neighbours[i][0] << ", " << neighbours[i][1] << ") ";
+	}
+	cout << "\n";
+
 	for (int i = 0; i < TILE_VALUES; i++)
 	{
+		cout << "Tile " << i+1 << " : ";
 		for (int j = 0; j < neighbours.size(); j++)
 		{
-			cout << rules[i][j][0] << "   " << rules[i][j][1] << "   " << rules[i][j][2] << "   " << "\n";
+			print2bit(rules[i][j]);
+			cout <<  " ";
 		}
+		cout << "\n";
 	}
-
-	cout << RULES_AMOUNT << "\n";
-	cout << TILE_VALUES << "\n";
+	cout << "\n";
 }

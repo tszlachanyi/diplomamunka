@@ -38,8 +38,17 @@ int COMPUTE_HEIGHT = 6;
 vector <ivec2> neighbours = { ivec2(0,1), ivec2(1, 0), ivec2(0, -1), ivec2(-1,0)};
 const unsigned int MAXIMUM_RULES = 16;				// You also have to set it in compute shader
 const unsigned int MAXIMUM_TILE_VALUES = 32;		// You also have to set it in compute shader
-int RULES_AMOUNT = neighbours.size();
+int NEIGHBOURS_AMOUNT = neighbours.size();
 int TILE_VALUES = 4;
+
+// Order of rules must match order of coords in neighbours vector
+int allRules[4][4] =
+{
+   { 0b1110 , 0b1110 , 0b1110, 0b1110},
+   { 0b1101 , 0b1101 , 0b1101, 0b1101},
+   { 0b1011 , 0b1011 , 0b1011, 0b1011},
+   { 0b0111 , 0b0111 , 0b0111, 0b0111},
+};
 
 
 int GRID_THICKNESS = 2;
@@ -111,46 +120,6 @@ void initScreen();
 void getRulesFromTexture();
 
 vec4 colorVector[MAXIMUM_TILE_VALUES] = { vec4(1, 0, 0, 1), vec4(0, 1, 0, 1), vec4(0, 0, 1, 1), vec4(1, 1, 0, 1), vec4(0, 1, 1, 1), vec4(1, 0, 1, 1), vec4(1, 0.5, 0, 1), vec4(0, 1, 0.5, 1), vec4(0.5, 0, 1, 1) };
-
-// Order of rules must match order of coords in neighbours vector
-//int allRules[TILE_VALUES][RULES_AMOUNT][3] =
-int allRules[4][4][3] =
-{
-   {{0,1,0b1110} , {1,0,0b1110} , {0,-1,0b1110}, {-1,0,0b1110}},
-   {{0,1,0b1101} , {1,0,0b1101} , {0,-1,0b1101}, {-1,0,0b1101}},
-   {{0,1,0b1011} , {1,0,0b1011} , {0,-1,0b1011}, {-1,0,0b1011}},
-   {{0,1,0b0111} , {1,0,0b0111} , {0,-1,0b0111}, {-1,0,0b0111}},
-};
-
-// example for assymetric rules
-//vector<vector<vector<GLint>>> rules =
-//{
-//   {{0,1,0b0001}},
-//   {{1,0,0b0010}},
-//   {{0,-1,0b0100}},
-//   {{-1,0,0b1000}},
-//};
-
-//array<array<array<GLint, 100>, MAXIMUM_RULES>, TILE_VALUES> rules =
-//{{
-//   {{{0,1,0b1110} , {1,0,0b1110} , {0,-1,0b1110}, {-1,0,0b1110}}},
-//   {{{0,1,0b1101} , {1,0,0b1101} , {0,-1,0b1101}, {-1,0,0b1101}}},
-//   {{{0,1,0b1011} , {1,0,0b1011} , {0,-1,0b1011}, {-1,0,0b1011}}},
-//   {{{0,1,0b0111} , {1,0,0b0111} , {0,-1,0b0111}, {-1,0,0b0111}}},
-//}};
-
-
-
-// rules array explanation :
-// in rules[a][b][c] gives one rule
-//		a : The value of the current tile we are using the role on
-//		b : Number of the rule
-//		c : c can be any of these 3 values : 
-//				[0] - x offset of the rule	
-//				[1] - y offset of the rule		
-//				[2] - list of allowed and disallowed tiles as a 2 bit integer, on the position defined by the offsets
-//			Example : {1,0,0b0000010 } rule means that the cell on the right of the current cell can only be tile 2
-
 
 GLfloat vertices[] =
 {
@@ -225,7 +194,3 @@ GLuint loadShader(GLenum _shaderType, const char* _fileName)
 
 	return loadedShader;
 }
-
-
-//entropy kiszámolás - tile választás - érték választás - szabályok alkalmazása szomszédokra
-//	gpu						cpu				 cpu						gpu
