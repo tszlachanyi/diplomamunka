@@ -157,12 +157,18 @@ vec2 convertCoords(vec2 coords, vec2 oldSize, vec2 newSize)
 
 void main()
 {
+	//FragColor = texture(testTexture, UVs);
+	//return;
+
+
     cellCoords = ivec2(vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT) * UVs);
 	dividedCellCoords = ivec2(vec2(COMPUTE_WIDTH * CELL_DIVISION, COMPUTE_HEIGHT * CELL_DIVISION) * UVs);
 	textureCoords = vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT) * UVs - vec2(cellCoords);
 	dividedTextureCoords = vec2(COMPUTE_WIDTH * CELL_DIVISION, COMPUTE_HEIGHT * CELL_DIVISION) * UVs - vec2(dividedCellCoords);
 	cellValue = imageLoad(inputImage, cellCoords)[0];
 	entr = entropy(cellValue);
+
+	
 
 	if (!DIVIDE_CELLS || entr == 1 || entr == 0)
 	{

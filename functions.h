@@ -296,7 +296,11 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 	glUniform1ui(glGetUniformLocation(computeProgram, "TILE_VALUES"), TILE_VALUES);
 	glUniform1ui(glGetUniformLocation(computeProgram, "SUDOKU"), SUDOKU);
 	glUniform1ui(glGetUniformLocation(computeProgram, "RULES_AMOUNT"), RULES_AMOUNT);
-	glUniform2iv(glGetUniformLocation(computeProgram, "neighbours"), RULES_AMOUNT, &neighbours[0].x);
+	if (RULES_AMOUNT != 0)
+	{
+		glUniform2iv(glGetUniformLocation(computeProgram, "neighbours"), RULES_AMOUNT, &neighbours[0].x);
+	}
+	
 
 	// Run compute shader
 	glDispatchCompute(RULES_AMOUNT + 1, 1, 1);

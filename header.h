@@ -31,8 +31,8 @@ const unsigned short OPENGL_MINOR_VERSION = 6;
 const unsigned int SCREEN_WIDTH = 1024;
 const unsigned int SCREEN_HEIGHT = 1024;
 
-int COMPUTE_WIDTH = 8;
-int COMPUTE_HEIGHT = 8;
+int COMPUTE_WIDTH = 6;
+int COMPUTE_HEIGHT = 6;
 
 //vector <ivec2> neighbours = { ivec2(0,1), ivec2(1, 0), ivec2(0, -1), ivec2(-1,0), ivec2(-1,1)  , ivec2(-1,-1)  ,ivec2(1,1)  ,ivec2(1,-1) };
 vector <ivec2> neighbours = { ivec2(0,1), ivec2(1, 0), ivec2(0, -1), ivec2(-1,0)};
