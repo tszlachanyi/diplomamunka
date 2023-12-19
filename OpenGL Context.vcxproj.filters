@@ -94,7 +94,7 @@
     <None Include="vertexShader.vert">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="computeShader.comp">
+    <None Include="useRulesShader.comp">
       <Filter>Shaders</Filter>
     </None>
     <None Include="getMinEntropyShader.comp">
@@ -103,5 +103,10 @@
     <None Include="getMinEntropyCellsShader.comp">
       <Filter>Shaders</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="ruleSets.h">
+      <Filter>Resource Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>

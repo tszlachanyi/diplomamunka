@@ -1,7 +1,6 @@
 #version 460 core
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-layout (binding = 1, r32ui) readonly uniform uimage2D inputImage;
 layout (binding = 2, r32ui) readonly uniform uimage2D entropyImage;
 
 layout(binding = 0) uniform atomic_uint minCounter;
@@ -16,7 +15,6 @@ void main()
 	uint minEntropy = atomicCounter(minCounter);
 	
 	ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
-	uint value = imageLoad(inputImage, pixelCoords)[0];
 	uint entropy = imageLoad(entropyImage, pixelCoords)[0];
 
 	if (entropy == minEntropy)

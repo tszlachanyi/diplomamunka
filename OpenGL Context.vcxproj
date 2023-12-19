@@ -164,6 +164,7 @@
     <ClCompile Include="libraries\include\imgui\imgui_tables.cpp" />
     <ClCompile Include="libraries\include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
+    <Text Include="ruleSets.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="functions.h" />
@@ -181,7 +182,7 @@
   <ItemGroup>
     <None Include="getMinEntropyCellsShader.comp" />
     <None Include="getMinEntropyShader.comp" />
-    <None Include="computeShader.comp" />
+    <None Include="useRulesShader.comp" />
     <None Include="fragmentShader.frag" />
     <None Include="vertexShader.vert" />
   </ItemGroup>

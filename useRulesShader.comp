@@ -5,7 +5,7 @@ layout (binding = 1, r32ui) uniform uimage2D inputImage;
 layout (binding = 2, r32ui) uniform uimage2D entropyImage;
 
 const uint MAXIMUM_TILE_VALUES = 32;
-const uint MAXIMUM_RULES = 16;
+const uint MAXIMUM_NEIGHBOURS = 16;
 
 uniform uint userChosenValue;
 uniform ivec2 userChosenCoords;
@@ -16,7 +16,7 @@ uniform float random2;
 uniform uint TILE_VALUES;
 uniform bool SUDOKU;
 uniform uint NEIGHBOURS_AMOUNT;
-uniform ivec2 neighbours[MAXIMUM_RULES];
+uniform ivec2 neighbours[MAXIMUM_NEIGHBOURS];
 
 uint cellValue;
 uint chosenCellOldValue;
@@ -46,7 +46,7 @@ layout(binding = 4) uniform atomic_uint collapsedCellsAmount;
 
 layout(binding = 5) buffer rulesBuffer
 {
-    uint allRules[MAXIMUM_TILE_VALUES * MAXIMUM_RULES];
+    uint allRules[MAXIMUM_TILE_VALUES * MAXIMUM_NEIGHBOURS];
 };
 
 uint getRule(uint x, uint y)

@@ -34,14 +34,10 @@ const unsigned int SCREEN_HEIGHT = 1024;
 int COMPUTE_WIDTH = 6;
 int COMPUTE_HEIGHT = 6;
 
-//vector <ivec2> neighbours = { ivec2(0,1), ivec2(1, 0), ivec2(0, -1), ivec2(-1,0), ivec2(-1,1)  , ivec2(-1,-1)  ,ivec2(1,1)  ,ivec2(1,-1) };
-vector <ivec2> neighbours = { ivec2(0,1), ivec2(1, 0), ivec2(0, -1), ivec2(-1,0)};
-const unsigned int MAXIMUM_RULES = 16;				// You also have to set it in compute shader
-const unsigned int MAXIMUM_TILE_VALUES = 32;		// You also have to set it in compute shader
-int NEIGHBOURS_AMOUNT = neighbours.size();
-int TILE_VALUES = 4;
-
 // Order of rules must match order of coords in neighbours vector
+// Everything allowed
+vector <ivec2> neighbours = { ivec2(0,1), ivec2(1, 0), ivec2(0, -1), ivec2(-1,0) };
+int TILE_VALUES = 4;
 int allRules[4][4] =
 {
    { 0b1110 , 0b1110 , 0b1110, 0b1110},
@@ -50,6 +46,11 @@ int allRules[4][4] =
    { 0b0111 , 0b0111 , 0b0111, 0b0111},
 };
 
+//vector <ivec2> neighbours = { ivec2(0,1), ivec2(1, 0), ivec2(0, -1), ivec2(-1,0), ivec2(-1,1)  , ivec2(-1,-1)  ,ivec2(1,1)  ,ivec2(1,-1) };
+
+const unsigned int MAXIMUM_NEIGHBOURS = 16;				// You also have to set it in compute shader
+const unsigned int MAXIMUM_TILE_VALUES = 32;		// You also have to set it in compute shader
+int NEIGHBOURS_AMOUNT = neighbours.size();
 
 int GRID_THICKNESS = 2;
 bool DIVIDE_CELLS = true;
@@ -77,13 +78,13 @@ char ruleInputTextureLocation[40] = "textures/testTexture1.png";
 
 GLuint screenVertexShader;
 GLuint screenFragmentShader;
-GLuint computeShader;
+GLuint useRulesShader;
 GLuint getMinEntropyShader;
 GLuint getMinEntropyCellsShader;
 GLuint getTilesFromTextureShader;
 
 GLuint screenShaderProgram;
-GLuint computeProgram;
+GLuint useRulesProgram;
 GLuint getMinEntropyProgram;
 GLuint getMinEntropyCellsProgram;
 

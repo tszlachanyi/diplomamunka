@@ -281,24 +281,24 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 4, collapsedCellsAmountBuffer);
 	
 	// Use compute shader
-	glUseProgram(computeProgram);
+	glUseProgram(useRulesProgram);
 	
 	// Send uniform values to compute shader
 	float random1 = ((double)rand()) / RAND_MAX;
 	float random2 = ((double)rand()) / RAND_MAX;
 
-	glUniform1ui(glGetUniformLocation(computeProgram, "userChosenValue"), chosenValue);
-	glUniform2i(glGetUniformLocation(computeProgram, "userChosenCoords"), coordinates.x, coordinates.y);
-	glUniform1ui(glGetUniformLocation(computeProgram, "manualCoords"), manualCoords);
-	glUniform1ui(glGetUniformLocation(computeProgram, "manualValue"), manualValue);
-	glUniform1f(glGetUniformLocation(computeProgram, "random1"), random1);
-	glUniform1f(glGetUniformLocation(computeProgram, "random2"), random2);
-	glUniform1ui(glGetUniformLocation(computeProgram, "TILE_VALUES"), TILE_VALUES);
-	glUniform1ui(glGetUniformLocation(computeProgram, "SUDOKU"), SUDOKU);
-	glUniform1ui(glGetUniformLocation(computeProgram, "NEIGHBOURS_AMOUNT"), NEIGHBOURS_AMOUNT);
+	glUniform1ui(glGetUniformLocation(useRulesProgram, "userChosenValue"), chosenValue);
+	glUniform2i(glGetUniformLocation(useRulesProgram, "userChosenCoords"), coordinates.x, coordinates.y);
+	glUniform1ui(glGetUniformLocation(useRulesProgram, "manualCoords"), manualCoords);
+	glUniform1ui(glGetUniformLocation(useRulesProgram, "manualValue"), manualValue);
+	glUniform1f(glGetUniformLocation(useRulesProgram, "random1"), random1);
+	glUniform1f(glGetUniformLocation(useRulesProgram, "random2"), random2);
+	glUniform1ui(glGetUniformLocation(useRulesProgram, "TILE_VALUES"), TILE_VALUES);
+	glUniform1ui(glGetUniformLocation(useRulesProgram, "SUDOKU"), SUDOKU);
+	glUniform1ui(glGetUniformLocation(useRulesProgram, "NEIGHBOURS_AMOUNT"), NEIGHBOURS_AMOUNT);
 	if (NEIGHBOURS_AMOUNT != 0)
 	{
-		glUniform2iv(glGetUniformLocation(computeProgram, "neighbours"), NEIGHBOURS_AMOUNT, &neighbours[0].x);
+		glUniform2iv(glGetUniformLocation(useRulesProgram, "neighbours"), NEIGHBOURS_AMOUNT, &neighbours[0].x);
 	}
 	
 
@@ -641,7 +641,7 @@ void initOpenGLObjects()
 
 
 	// Shaders, programs
-	initShaderProgram({ GL_COMPUTE_SHADER }, { "computeShader.comp" }, { &computeShader }, &computeProgram);
+	initShaderProgram({ GL_COMPUTE_SHADER }, { "useRulesShader.comp" }, { &useRulesShader }, &useRulesProgram);
 	initShaderProgram({ GL_COMPUTE_SHADER }, { "getMinEntropyShader.comp" }, { &getMinEntropyShader }, &getMinEntropyProgram);
 	initShaderProgram({ GL_COMPUTE_SHADER }, { "getMinEntropyCellsShader.comp" }, { &getMinEntropyCellsShader }, &getMinEntropyCellsProgram);
 	initShaderProgram({ GL_VERTEX_SHADER , GL_FRAGMENT_SHADER }, { "vertexShader.vert","fragmentShader.frag" }, { &screenVertexShader,&screenFragmentShader }, &screenShaderProgram);
@@ -674,26 +674,28 @@ int findElementIndexInVector(vector<T> v, T element)
 	return -1;
 }
 
-
 void getRulesFromTexture()
 {
+	uint KERNEL_WIDTH = 2;
+	uint KERNEL_HEIGH = 2;
+
 	// 1. Load Texture
 	vec3 params = loadTextureFromFile(&inputTexture, ruleInputTextureLocation);
-	
+
 	// 2. Convert it into matrix
 	int width = params[0];
 	int height = params[1];
-	vector <GLubyte> v (width * height * 4);
+	vector <GLubyte> v(width * height * 4);
 	glBindTexture(GL_TEXTURE_2D, inputTexture);
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, &v[0]);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	vector<vector<vec4>> image;
-	
-	for (int i = 0; i < width; ++i) 
+
+	for (int i = 0; i < width; ++i)
 	{
 		vector<vec4> column;
-		for (int j = 0; j < height; ++j) 
+		for (int j = 0; j < height; ++j)
 		{
 			int index = (j * width + i) * 4;
 			vec4 pixel = vec4(float(v[index]) / 255.0f, float(v[index + 1]) / 255.0f, float(v[index + 2]) / 255.0f, float(v[index + 3]) / 255.0f);
@@ -709,7 +711,7 @@ void getRulesFromTexture()
 		for (int j = 0; j < height; j++)
 		{
 			vec4 pixel = image[i][j];
-			if(vectorContains<vec4>(tiles,pixel) == false) //tiles doesnt contain pixel
+			if (vectorContains<vec4>(tiles, pixel) == false) //tiles doesnt contain pixel
 			{
 				tiles.push_back(pixel);
 			}
@@ -717,9 +719,9 @@ void getRulesFromTexture()
 	}
 
 	TILE_VALUES = tiles.size();
-	
+
 	// 4. Get rules from the image
-	int rules[MAXIMUM_TILE_VALUES][MAXIMUM_RULES] = { {0} };
+	int rules[MAXIMUM_TILE_VALUES][MAXIMUM_NEIGHBOURS] = { {0} };
 
 	for (int i = 0; i < width; i++)
 	{
@@ -746,18 +748,18 @@ void getRulesFromTexture()
 	}
 
 	// 5. Send rules to ssbo
-	int rulesArray[MAXIMUM_TILE_VALUES * MAXIMUM_RULES];
+	int rulesArray[MAXIMUM_TILE_VALUES * MAXIMUM_NEIGHBOURS];
 	for (int i = 0; i < TILE_VALUES; i++)
 	{
 		for (int j = 0; j < NEIGHBOURS_AMOUNT; j++)
 		{
-			
+
 			rulesArray[(i * NEIGHBOURS_AMOUNT) + j] = rules[i][j];
 		}
 	}
 	glGenBuffers(1, &rulesBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, rulesBuffer);
-	glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(int) * MAXIMUM_TILE_VALUES * MAXIMUM_RULES, rulesArray, 0);
+	glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(int) * MAXIMUM_TILE_VALUES * MAXIMUM_NEIGHBOURS, rulesArray, 0);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, rulesBuffer);
 
 	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, rulesBuffer);
@@ -769,8 +771,8 @@ void getRulesFromTexture()
 	{
 		colorVector[i] = tiles[i];
 	}
-	 
-	
+
+
 	// 7. Print extracted colors, rules
 	cout << "Extracted colors" << "\n";
 	for (int i = 0; i < tiles.size(); i++)
@@ -790,11 +792,11 @@ void getRulesFromTexture()
 
 	for (int i = 0; i < TILE_VALUES; i++)
 	{
-		cout << "Tile " << i+1 << " : ";
+		cout << "Tile " << i + 1 << " : ";
 		for (int j = 0; j < neighbours.size(); j++)
 		{
 			print2bit(rules[i][j]);
-			cout <<  " ";
+			cout << " ";
 		}
 		cout << "\n";
 	}

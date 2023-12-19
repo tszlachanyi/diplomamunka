@@ -57,8 +57,6 @@ int main()
 	glVertexArrayVertexBuffer(VAO, 0, VBO, 0, 5 * sizeof(GLfloat));
 	glVertexArrayElementBuffer(VAO, EBO);
 
-	
-
 	// Init opengl textures, buffers, shaders, programs
 	initOpenGLObjects();
 	
