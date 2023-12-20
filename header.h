@@ -3,13 +3,13 @@
 #include <algorithm>
 #include <stdio.h>
 #include <string>
-#include <iostream>
 #include <fstream>
 #include <vector>
 #include <bitset>		
 #include <array>
 #include <cmath>
 #include <thread>
+#include <fstream>
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_opengl3.h"
@@ -68,8 +68,8 @@ bool SUDOKU = false;
 
 bool vSync = false;
 
-GLuint computeTex;
-GLuint entropyTex;
+GLuint gridImage;
+GLuint entropyImage;
 
 GLuint inputTexture;
 vector<GLuint> loadedTextures;
@@ -119,6 +119,7 @@ void initOpenGLObjects();
 void initScreen();
 
 void getRulesFromTexture();
+void runTests();
 
 vec4 colorVector[MAXIMUM_TILE_VALUES] = { vec4(1, 0, 0, 1), vec4(0, 1, 0, 1), vec4(0, 0, 1, 1), vec4(1, 1, 0, 1), vec4(0, 1, 1, 1), vec4(1, 0, 1, 1), vec4(1, 0.5, 0, 1), vec4(0, 1, 0.5, 1), vec4(0.5, 0, 1, 1) };
 

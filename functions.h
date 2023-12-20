@@ -186,8 +186,8 @@ void initScreen()
 	// Fill textures with initial values
 	vector <int> arr1(COMPUTE_WIDTH * COMPUTE_HEIGHT, pow(2, TILE_VALUES) - 1);
 	vector <int> arr2(COMPUTE_WIDTH * COMPUTE_HEIGHT, TILE_VALUES);
-	glTextureSubImage2D(computeTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &arr1[0]);
-	glTextureSubImage2D(entropyTex, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &arr2[0]);
+	glTextureSubImage2D(gridImage, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &arr1[0]);
+	glTextureSubImage2D(entropyImage, 0, 0, 0, COMPUTE_WIDTH, COMPUTE_HEIGHT, GL_RED_INTEGER, GL_UNSIGNED_INT, &arr2[0]);
 }
 
 // Read data to CPU from an opengl buffer
@@ -245,7 +245,7 @@ void runGetMinEntropyCellsProgram()
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 
-// Use compute shader to create next iteration in one of the computeTextures
+// Run one step of the algorithm
 void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool manualCoords = false, bool manualValue = false)
 {
 	uint startTime = getEpochTime();
@@ -390,6 +390,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		{
 			initScreen();
 		}
+		if (key == GLFW_KEY_T && action == GLFW_PRESS)
+		{
+			runTests();
+		}
 	}
 	
 
@@ -425,7 +429,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 		{
 			if (isInsideGrid(coords, vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT)))
 			{
-				textureVector = getTextureVector(computeTex);
+				textureVector = getTextureVector(gridImage);
 				GLuint currentValue = textureVector[matrixToVecCoords(coords)];
 				// If the cell is already collapsed (has only 1 or 0 possible tile), don't do anything
 				if (possibleTiles(currentValue).size() > 1)
@@ -454,7 +458,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 		if (button == GLFW_MOUSE_BUTTON_RIGHT)
 		{
 			cout << " (" << coords.x << " , " << coords.y << ")  ";
-			textureVector = getTextureVector(computeTex);
+			textureVector = getTextureVector(gridImage);
 
 			int number = textureVector[matrixToVecCoords(coords)];
 			print2bit(number);
@@ -487,9 +491,6 @@ void Render()
 
 	// Use compute program
 	glUseProgram(screenShaderProgram);
-
-	// Get the current computeTex to render
-	glBindImageTexture(1, computeTex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 
 	// Send externally loaded textures to gpu
 	for (int i = 0; i < loadedTextures.size(); i++)
@@ -630,8 +631,8 @@ void initOpenGLObjects()
 	}
 
 	// Textures
-	initTexture(&computeTex, 1, GL_READ_WRITE, GL_R32UI);
-	initTexture(&entropyTex, 2, GL_READ_WRITE, GL_R32UI);
+	initTexture(&gridImage, 1, GL_READ_WRITE, GL_R32UI);
+	initTexture(&entropyImage, 2, GL_READ_WRITE, GL_R32UI);
 
 	for (int i = 0; i < textureLocations.size(); i++)
 	{
@@ -676,8 +677,8 @@ int findElementIndexInVector(vector<T> v, T element)
 
 void getRulesFromTexture()
 {
-	uint KERNEL_WIDTH = 2;
-	uint KERNEL_HEIGH = 2;
+	const uint KERNEL_WIDTH = 2;
+	const uint KERNEL_HEIGH = 2;
 
 	// 1. Load Texture
 	vec3 params = loadTextureFromFile(&inputTexture, ruleInputTextureLocation);
@@ -801,4 +802,53 @@ void getRulesFromTexture()
 		cout << "\n";
 	}
 	cout << "\n";
+}
+
+void runTest(int width, int height, int amount)
+{
+	COMPUTE_WIDTH = width;
+	COMPUTE_HEIGHT = height;
+	initOpenGLObjects();
+	initScreen();
+	runWFC();
+
+	ofstream f("tests.csv", std::ios_base::app);
+	//f << name << "\n";
+	uint64_t sumTime = 0;
+
+	for (int i = 0; i < amount; i++)
+	{
+		uint64_t startTime = getEpochTime();
+		initScreen();
+		runWFC();
+		uint64_t time = getEpochTime() - startTime;
+		sumTime += time;
+
+		//f << time << ",";
+	}
+	//f << "\n";
+	f << sumTime << ",";
+	f.close();
+
+}
+
+void runTests()
+{
+	int SPEED = 1000;
+	RENDER_DURING_WFC = false;
+	LOG_ELAPSED_TIMES = false;
+	IMGUI = false;
+	SUDOKU = false;
+	vSync = false;
+
+	ofstream f("tests.csv", std::ios_base::app);
+	f << "GPU,";
+	f.close();
+
+	for (int i = 0; i < 10; i++)
+	{
+		int n = pow(2, i);
+		runTest(n, n, 1);
+	}
+	
 }

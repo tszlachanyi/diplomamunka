@@ -1,7 +1,7 @@
 #version 460 core
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-layout (binding = 1, r32ui) uniform uimage2D inputImage;
+layout (binding = 1, r32ui) uniform uimage2D gridImage;
 layout (binding = 2, r32ui) uniform uimage2D entropyImage;
 
 const uint MAXIMUM_TILE_VALUES = 32;
@@ -134,7 +134,7 @@ void main()
 		currentCoords = chosenCoords + neighbours[gl_GlobalInvocationID.x - 1];
 	}
 	
-	cellValue = imageLoad(inputImage, currentCoords)[0];
+	cellValue = imageLoad(gridImage, currentCoords)[0];
 	
 
 	// Chosen Value 
@@ -145,7 +145,7 @@ void main()
 	}
 	else
 	{
-		chosenCellOldValue = imageLoad(inputImage, chosenCoords)[0];
+		chosenCellOldValue = imageLoad(gridImage, chosenCoords)[0];
 		possibleTiles(chosenCellOldValue, tileArray, entropy);
 		chosenTileIndex = tileArray[uint(floor(random2 * entropy))];
 		chosenValue = uint(pow(2, chosenTileIndex));
@@ -177,5 +177,5 @@ void main()
 		imageStore(entropyImage, currentCoords, uvec4(newEntropy, 0u, 0u, 0u));
 	}
 
-	imageStore(inputImage, currentCoords, uvec4(cellValue, 0u, 0u, 0u));
+	imageStore(gridImage, currentCoords, uvec4(cellValue, 0u, 0u, 0u));
 }

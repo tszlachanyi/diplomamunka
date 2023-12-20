@@ -3,7 +3,7 @@
 out vec4 FragColor;
 in vec2 UVs;
 
-layout (binding = 1, r32ui) readonly uniform uimage2D inputImage;
+layout (binding = 1, r32ui) readonly uniform uimage2D gridImage;
 
 uniform sampler2D loadedTexture1;
 uniform sampler2D loadedTexture2;
@@ -165,7 +165,7 @@ void main()
 	dividedCellCoords = ivec2(vec2(COMPUTE_WIDTH * CELL_DIVISION, COMPUTE_HEIGHT * CELL_DIVISION) * UVs);
 	textureCoords = vec2(COMPUTE_WIDTH, COMPUTE_HEIGHT) * UVs - vec2(cellCoords);
 	dividedTextureCoords = vec2(COMPUTE_WIDTH * CELL_DIVISION, COMPUTE_HEIGHT * CELL_DIVISION) * UVs - vec2(dividedCellCoords);
-	cellValue = imageLoad(inputImage, cellCoords)[0];
+	cellValue = imageLoad(gridImage, cellCoords)[0];
 	entr = entropy(cellValue);
 
 	
