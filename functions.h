@@ -336,12 +336,11 @@ void computeNext(ivec2 coordinates = ivec2(0, 0), uint chosenValue = 0, bool man
 
 void runWFC()
 {
-	uint64_t startTime = getEpochTime();
-	
 	// Repeat until all cells are collapsed
 	while (true)
 	{
 		computeNext();
+	
 		if (RENDER_DURING_WFC)
 		{
 			Render();
@@ -352,7 +351,7 @@ void runWFC()
 			stop = false;
 			break;
 		}
-
+	
 		if (SPEED > 0 && 1000 > SPEED)
 		{
 			chrono::milliseconds duration(1000-SPEED);
@@ -363,7 +362,19 @@ void runWFC()
 	}
 
 	uint64_t endTime = getEpochTime();
-	cout << "Whole algorithm - elapsed time : " << endTime - startTime << " ms" << "\n";
+	//cout << "Whole algorithm - elapsed time : " << endTime - startTime << " ms" << "\n";
+}
+
+// Compute cells by columns instead of calculating minimum entropy
+void runModelSynthesis()
+{
+	for (int i = 0; i < COMPUTE_WIDTH; i++)
+	{
+		for (int j = 0; j < COMPUTE_HEIGHT; j++)
+		{
+			computeNext(vec2(i, j), 0, true, false);
+		}
+	}
 }
 
 // Input
@@ -595,6 +606,23 @@ void Render()
 	}
 }
 
+void fillRulesBuffer()
+{
+	int rulesArray[MAXIMUM_TILE_VALUES * MAXIMUM_NEIGHBOURS];
+	for (int i = 0; i < TILE_VALUES; i++)
+	{
+		for (int j = 0; j < NEIGHBOURS_AMOUNT; j++)
+		{
+
+			rulesArray[(i * NEIGHBOURS_AMOUNT) + j] = allRules[i][j];
+		}
+	}
+	glGenBuffers(1, &rulesBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, rulesBuffer);
+	glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(int) * MAXIMUM_TILE_VALUES * MAXIMUM_NEIGHBOURS, rulesArray, 0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, rulesBuffer);
+}
+
 void initOpenGLObjects()
 {
 	// Buffers
@@ -622,10 +650,7 @@ void initOpenGLObjects()
 	static bool firstCall = true;
 	if (firstCall)
 	{
-		glGenBuffers(1, &rulesBuffer);
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, rulesBuffer);
-		glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(int) * TILE_VALUES * NEIGHBOURS_AMOUNT, allRules, 0);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, rulesBuffer);
+		fillRulesBuffer();
 	
 		firstCall = false;
 	}
@@ -810,45 +835,133 @@ void runTest(int width, int height, int amount)
 	COMPUTE_HEIGHT = height;
 	initOpenGLObjects();
 	initScreen();
-	runWFC();
+	//runWFC();
 
 	ofstream f("tests.csv", std::ios_base::app);
-	//f << name << "\n";
+	uint64_t time = 0;
 	uint64_t sumTime = 0;
+	uint64_t maxTime = 0;
+	float deviation = 0;
+	vector<uint64_t> times = {};
 
 	for (int i = 0; i < amount; i++)
 	{
-		uint64_t startTime = getEpochTime();
+		
 		initScreen();
+
+		uint64_t startTime = getEpochTime();
 		runWFC();
-		uint64_t time = getEpochTime() - startTime;
+		time = getEpochTime() - startTime;
+		
+		times.push_back(time);
 		sumTime += time;
 
 		//f << time << ",";
 	}
 	//f << "\n";
-	f << sumTime << ",";
+	int N = times.size();
+	float avg = float(sumTime) / float(N);
+	f << avg << ",";
 	f.close();
+
+	uint64_t minTime = times[0];
+
+	for (int i = 0; i < N; i++)
+	{
+		if (times[i] > maxTime)
+		{
+			maxTime = times[i];
+		}
+		if (minTime > times[i])
+		{
+			minTime = times[i];
+		}
+
+		deviation = deviation + (avg - float(times[i])) * (avg - float(times[i]));
+	}
+	deviation = deviation / float(N);
+	deviation = sqrt(deviation);
+
+	printVector(times);
+	cout << "Avg: " << avg << " Max: " << maxTime << " Min: " << minTime << " Deviation: " << deviation << "\n";
+	
 
 }
 
 void runTests()
 {
-	int SPEED = 1000;
 	RENDER_DURING_WFC = false;
 	LOG_ELAPSED_TIMES = false;
 	IMGUI = false;
 	SUDOKU = false;
 	vSync = false;
 
-	ofstream f("tests.csv", std::ios_base::app);
-	f << "GPU,";
-	f.close();
-
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i <= 10; i++)
 	{
 		int n = pow(2, i);
+		cout << n << "x" << n << "\n";
 		runTest(n, n, 1);
 	}
 	
+	ofstream g("tests.csv", std::ios_base::app);
+	g << "\n";
+	g.close();
+	
+}
+
+// Grid size test
+void test1()
+{
+	for (int i = 0; i <= 10; i++)
+	{
+		int n = pow(2, i);
+		cout << n << "x" << n << "\n";
+		runTest(n, n, 100);
+	}
+}
+
+// Tile Values amount test
+void test2()
+{
+	for (size_t i = 2; i < 32; i++)
+	{
+		TILE_VALUES = i;
+		for (int k = 0; k < TILE_VALUES; k++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				allRules[k][j] = pow(2, TILE_VALUES) - 1 - pow(2, k);
+			}
+
+		}
+		fillRulesBuffer();
+
+		runTest(16, 16, 100);
+	}
+}
+
+// Neighbours amount test
+void test3()
+{
+	neighbours = {};
+
+	TILE_VALUES = 31;
+	for (size_t i = 1; i <= 15; i++)
+	{
+		neighbours.push_back(ivec2(i, 0));
+		neighbours.push_back(ivec2(-1 * i, 0));
+		NEIGHBOURS_AMOUNT = neighbours.size();
+
+		for (int k = 0; k < TILE_VALUES; k++)
+		{
+			for (int j = 0; j < i * 2; j++)
+			{
+				allRules[k][j] = pow(2, TILE_VALUES) - 1 - pow(2, k);
+			}
+
+		}
+		fillRulesBuffer();
+
+		runTest(64, 1, 100);
+	}
 }

@@ -35,10 +35,11 @@ int COMPUTE_WIDTH = 6;
 int COMPUTE_HEIGHT = 6;
 
 // Order of rules must match order of coords in neighbours vector
-// Everything allowed
+const unsigned int MAXIMUM_NEIGHBOURS = 32;				// You also have to set it in compute shader
+const unsigned int MAXIMUM_TILE_VALUES = 32;		// You also have to set it in compute shader
 vector <ivec2> neighbours = { ivec2(0,1), ivec2(1, 0), ivec2(0, -1), ivec2(-1,0) };
 int TILE_VALUES = 4;
-int allRules[4][4] =
+int allRules[MAXIMUM_TILE_VALUES][MAXIMUM_NEIGHBOURS] =
 {
    { 0b1110 , 0b1110 , 0b1110, 0b1110},
    { 0b1101 , 0b1101 , 0b1101, 0b1101},
@@ -47,9 +48,6 @@ int allRules[4][4] =
 };
 
 //vector <ivec2> neighbours = { ivec2(0,1), ivec2(1, 0), ivec2(0, -1), ivec2(-1,0), ivec2(-1,1)  , ivec2(-1,-1)  ,ivec2(1,1)  ,ivec2(1,-1) };
-
-const unsigned int MAXIMUM_NEIGHBOURS = 16;				// You also have to set it in compute shader
-const unsigned int MAXIMUM_TILE_VALUES = 32;		// You also have to set it in compute shader
 int NEIGHBOURS_AMOUNT = neighbours.size();
 
 int GRID_THICKNESS = 2;
